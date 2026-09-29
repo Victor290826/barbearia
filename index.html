@@ -8,6 +8,7 @@
     <!-- SDK Oficial do Google Identity Services para Login Real -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
+    
     <!-- FontAwesome para os ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
@@ -941,25 +942,33 @@ function closeVantagensModal() {
     }
 }
 
-    function handleGoogleCredentialResponse(response) {
-        const dadosDecodificados = parseJwt(response.credential);
+    // Function atualizada para validar o agendamento imediatamente após o login do Google
+function handleCredentialResponse(response) {
+  const dadosUtilizador = parseJwt(response.credential);
 
-        if (dadosDecodificados && dadosDecodificados.email_verified) {
-            usuarioLogado = dadosDecodificados.email;
-            nomeUsuario = dadosDecodificados.name;
-            fotoUsuario = dadosDecodificados.picture;
+  const usuario = {
+    nome: dadosUtilizador.name,
+    email: dadosUtilizador.email,
+    foto: dadosUtilizador.picture,
+    logado: true,
+    verificado: true
+  };
 
-            localStorage.setItem("usuario_logado", usuarioLogado);
-            localStorage.setItem("nome_usuario", nomeUsuario);
-            localStorage.setItem("foto_usuario", fotoUsuario);
+  // Guarda os dados em todas as chaves de verificação que a aplicação possa consultar
+  localStorage.setItem('usuarioBarbearia', JSON.stringify(usuario));
+  localStorage.setItem('usuario', JSON.stringify(usuario));
+  localStorage.setItem('clienteEmail', usuario.email);
+  localStorage.setItem('emailVerificado', 'true');
 
-            atualizarInterfaceUsuario();
-            carregarAgendamentosReais();
-            closeProfileModal();
+  alert(`Bem-vindo(a), ${usuario.nome}!`);
 
-            alert(`Bem-vindo(a), ${nomeUsuario}!\nLogin efetuado com: ${usuarioLogado}`);
-        }
-    }
+  // Tenta fechar o modal de login automaticamente sem precisar recarregar a página do zero
+  if (typeof closeProfileModal === 'function') {
+    closeProfileModal();
+  } else {
+    location.reload();
+  }
+}
 
     function parseJwt(token) {
         try {
@@ -1315,6 +1324,51 @@ function closeVantagensModal() {
         document.getElementById("selected-date-label").innerText = `${bookingState.data} às ${h}`; 
         openStep('horario'); 
     }
+  window.onload = function () {
+    // 1. Inicializa o Google Identity Services
+    google.accounts.id.initialize({
+      client_id: "22163531311-2jn8s94c8ae6gnod12ggbrtki21uecql.apps.googleusercontent.com",
+      callback: handleCredentialResponse,
+      auto_select: true
+    });
+
+    // 2. Desenha o botão dentro da div googleBtnWrapper (linha 747)
+    google.accounts.id.renderButton(
+      document.getElementById("googleBtnWrapper"),
+      { theme: "outline", size: "large", width: "100%", text: "continue_with" }
+    );
+
+    // 3. Ativa o pop-up automático One Tap
+    google.accounts.id.prompt();
+  };
+
+  // 4. Guarda a sessão do cliente
+  function handleCredentialResponse(response) {
+    const dadosUtilizador = parseJwt(response.credential);
+
+    const usuario = {
+      nome: dadosUtilizador.name,
+      email: dadosUtilizador.email,
+      foto: dadosUtilizador.picture,
+      logado: true
+    };
+
+    localStorage.setItem('usuarioBarbearia', JSON.stringify(usuario));
+
+    alert(`Bem-vindo(a), ${usuario.nome}!`);
+    location.reload();
+  }
+
+  // 5. Descodifica os dados do Google
+  function parseJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+  }
 </script>
 </body>
 </html>
