@@ -801,8 +801,24 @@
         <div class="sheet-handle"></div>
         <div class="sheet-body" id="sheet-body"></div>
     </div>
-
+   
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBLgnDDImGXkKjTd7Z5FWm2yIkDTF5hJWU",
+        authDomain: "barbearia-lerinho-costa-5e12f.firebaseapp.com",
+        projectId: "barbearia-lerinho-costa-5e12f",
+        storageBucket: "barbearia-lerinho-costa-5e12f.firebasestorage.app",
+        messagingSenderId: "833448961588",
+        appId: "1:833448961588:web:126db05be2e01890168c61"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+
+    window.db = firebase.firestore();
+    var db = firebase.firestore();
     // =========================================================================
     // CONFIGURAÇÕES E ESTADO GLOBAL
     // =========================================================================
