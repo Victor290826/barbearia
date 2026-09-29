@@ -806,7 +806,7 @@
     // =========================================================================
     // COLE SEU CLIENT_ID GERADO NO GOOGLE CLOUD CONSOLE NA VARIÁVEL ABAIXO:
     // =========================================================================
-    const GOOGLE_CLIENT_ID = "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com";
+   const GOOGLE_CLIENT_ID = "22163531311-2jn8s94c8ae6gnod12ggbrtki21uecql.apps.googleusercontent.com";
 
     // Dados da Unidade Única
     const UNIDADE_UNICA = {
@@ -942,30 +942,28 @@ function closeVantagensModal() {
     }
 }
 
-    // Function atualizada para validar o agendamento imediatamente após o login do Google
-function handleCredentialResponse(response) {
+   function handleCredentialResponse(response) {
   const dadosUtilizador = parseJwt(response.credential);
 
-  const usuario = {
-    nome: dadosUtilizador.name,
-    email: dadosUtilizador.email,
-    foto: dadosUtilizador.picture
-  };
+  // 1. Atualiza as variáveis globais em memória
+  usuarioLogado = dadosUtilizador.email;
+  nomeUsuario = dadosUtilizador.name;
+  fotoUsuario = dadosUtilizador.picture;
 
-  // 1. Define a variável global que a função submitBooking() valida (linha 1155)
-  usuarioLogado = usuario;
+  // 2. Guarda no localStorage com os nomes exatos utilizados nas linhas 818-820
+  localStorage.setItem("usuario_logado", dadosUtilizador.email);
+  localStorage.setItem("nome_usuario", dadosUtilizador.name);
+  localStorage.setItem("foto_usuario", dadosUtilizador.picture);
 
-  // 2. Guarda no localStorage para manter a sessão ao recarregar a página
-  localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
-  localStorage.setItem('usuarioBarbearia', JSON.stringify(usuario));
+  alert(`Bem-vindo(a), ${dadosUtilizador.name}!`);
 
-  alert(`Bem-vindo(a), ${usuario.nome}!`);
-
-  // 3. Fecha o modal de login automaticamente para poderes concluir o agendamento
+  // 3. Fecha a janela de login para prosseguir com o agendamento
   if (typeof closeProfileModal === 'function') {
     closeProfileModal();
+  } else {
+    location.reload();
   }
-}
+}  
 
     function parseJwt(token) {
         try {
