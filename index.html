@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbearia Lerinho Costa</title>
+    <!-- FontAwesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f5f7;
+            color: #1f2937;
+            padding-bottom: 30px;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #374151;
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            cursor: pointer;
+        }
+
+        /* Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 99;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100%;
+            background-color: #1f2937;
+            color: #ffffff;
+            z-index: 100;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-header {
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .logo-container h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #d2b378;
+            letter-spacing: 1px;
+        }
+
+        .logo-container h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .logo-icon {
+            color: #d2b378;
+            font-size: 20px;
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .menu-item {
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .menu-item.active, .menu-item:hover {
+            background-color: #374151;
+            color: #ffffff;
+        }
+
+        .menu-item.logout {
+            color: #ef4444;
+        }
+
+        .sidebar-footer {
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        /* Container Principal */
+        .container {
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .card-link {
+            color: #d2b378;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .banner-gold {
+            background: linear-gradient(135deg, #d2b378, #b89352);
+            color: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .banner-content h3 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .banner-content p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .banner-icon {
+            font-size: 20px;
+        }
+
+        .appointments-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .appointments-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .see-all {
+            color: #d2b378;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .appointment-card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .appointment-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .appointment-info i {
+            color: #9ca3af;
+            width: 16px;
+        }
+
+        .appointment-total {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #f3f4f6;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background-color: #d2b378;
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Modal de Agendamento e Perfil */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 90;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .modal.open {
+            display: block;
+        }
+
+        .modal-content {
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #374151;
+        }
+
+        .modal-instruction {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .booking-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .step-item {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+        }
+
+        .step-icon {
+            color: #d2b378;
+            font-size: 18px;
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        /* Bottom Sheet (Painel Inferior) */
+        .sheet-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 101;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            background-color: #ffffff;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 20px;
+            z-index: 102;
+            transition: bottom 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet-body {
+            overflow-y: auto;
+            max-height: calc(85vh - 50px);
+            padding-right: 4px;
+        }
+
+        .bottom-sheet.open {
+            bottom: 0;
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background-color: #d1d5db;
+            border-radius: 2px;
+            margin: 0 auto 16px auto;
+        }
+
+        /* Seletor de Data e Hora */
+        .date-selector-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+
+        .date-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .day-name {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .day-number-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            border: none;
+            background-color: transparent;
+            color: #1f2937;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .day-number-btn.selected {
+            background-color: #d2b378;
+            color: #ffffff;
+        }
+
+        .day-number-btn.disabled,
+        .day-number-btn:disabled {
+            background-color: #e5e7eb !important;
+            color: #9ca3af !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
+
+        .time-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .time-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            background-color: #ffffff;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .time-btn.selected {
+            background-color: #d2b378;
+            border-color: #d2b378;
+            color: #ffffff;
+        }
+
+        .option-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .barber-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .barber-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .barber-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-bottom: 8px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay do Menu Lateral -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Menu Lateral (Sidebar) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="close-btn" onclick="toggleSidebar()">&times;</button>
+            <div class="logo-container">
+                <h2>Barbearia</h2>
+                <h1>LERINHO Costa</h1>
+                <div class="logo-icon"><i class="fa-solid fa-scissors"></i></div>
+            </div>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="#" class="menu-item active"><i class="fa-solid fa-house"></i> Início</a>
+            <a href="#" class="menu-item"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
+            <a href="#" class="menu-item"><i class="fa-solid fa-ticket"></i> Vantagens Lerinho</a>
+            <a href="#" class="menu-item"><i class="fa-solid fa-layer-group"></i> Plano</a>
+            <a href="#" class="menu-item logout"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+        </nav>
+        <div class="sidebar-footer">
+            <p>2026 © Barbearia Lerinho Costa</p>
+        </div>
+    </aside>
+
+    <!-- Cabeçalho Superior -->
+    <header class="top-bar">
+        <button class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <h2 class="page-title">Início</h2>
+        <div class="user-avatar" onclick="openProfileModal()">
+            <i class="fa-solid fa-user"></i>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="container">
+
+        <!-- Card: Seu Plano -->
+        <section class="card">
+            <h3 class="card-title">O seu plano</h3>
+            <p class="card-subtitle">Está a aproveitar as vantagens do <strong>Clube Lerinho - Cabelo & Barba</strong></p>
+            <a href="#" class="card-link">Detalhes sobre o plano <i class="fa-solid fa-arrow-right"></i></a>
+        </section>
+
+        <!-- Card Promocional (Dourado) -->
+        <section class="banner-gold">
+            <div class="banner-content">
+                <h3>Conheça as VANTAGENS do CLUBE LERINHO</h3>
+                <p>e obtenha o seu cupão exclusivo</p>
+            </div>
+            <i class="fa-solid fa-arrow-right banner-icon"></i>
+        </section>
+
+        <!-- Secção: Próximos Agendamentos -->
+        <section class="appointments-section">
+            <div class="section-header">
+                <h3>Próximos agendamentos</h3>
+                <a href="#" class="see-all">Ver tudo</a>
+            </div>
+
+            <!-- Card de Agendamento Confirmado -->
+            <div class="appointment-card">
+                <div class="appointment-info date">
+                    <i class="fa-regular fa-circle"></i> <span>02 de outubro, 13:30</span>
+                </div>
+                <div class="appointment-info service">
+                    <i class="fa-solid fa-store"></i> <span>Cabelo, Barba</span>
+                </div>
+                <div class="appointment-info barber">
+                    <i class="fa-solid fa-user"></i> <span>Lerinho Costa</span>
+                </div>
+                <div class="appointment-total">
+                    <span>Total: R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Botão de Novo Agendamento -->
+            <button class="btn-primary" onclick="openBookingModal()">
+                <i class="fa-solid fa-plus"></i> Novo agendamento
+            </button>
+        </section>
+    </main>
+
+    <!-- Modal / Ecrã de Agendamento -->
+    <div class="modal" id="booking-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-btn" onclick="closeBookingModal()"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2>Novo Agendamento</h2>
+            </div>
+            <p class="modal-instruction">Selecione os detalhes do seu agendamento</p>
+
+            <div class="booking-steps">
+                <!-- Passo 1: Filial -->
+                <div class="step-item" onclick="openStep('filial')">
+                    <i class="fa-solid fa-store step-icon"></i>
+                    <div class="step-info">
+                        <span class="step-title" id="selected-filial-label">Selecione a filial</span>
+                    </div>
+                </div>
+
+                <!-- Passo 2: Profissional -->
+                <div class="step-item" onclick="openStep('profissional')">
+                    <i class="fa-solid fa-user step-icon"></i>
+                    <div class="step-info">
+                        <span class="step-title" id="selected-barber-label">Selecione um profissional</span>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Serviços -->
+                <div class="step-item" onclick="openStep('servicos')">
+                    <i class="fa-solid fa-circle-plus step-icon"></i>
+                    <div class="step-info">
+                        <span class="step-title" id="selected-services-label">Selecione os serviços</span>
+                    </div>
+                </div>
+
+                <!-- Passo 4: Horário -->
+                <div class="step-item" onclick="openStep('horario')">
+                    <i class="fa-solid fa-calendar-days step-icon"></i>
+                    <div class="step-info">
+                        <span class="step-title" id="selected-date-label">Selecione um horário</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary confirm-btn" onclick="submitBooking()">Agendar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Login / Perfil -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-btn" onclick="closeProfileModal()"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2>Acessar Conta</h2>
+            </div>
+            <p class="modal-instruction">Informe os seus dados para entrar</p>
+
+            <form style="display: flex; flex-direction: column; gap: 14px;" onsubmit="event.preventDefault(); alert('Login efetuado com sucesso!'); closeProfileModal();">
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">E-mail ou Telemóvel</label>
+                    <input type="text" placeholder="Digite seu e-mail ou número" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">Palavra-passe / Senha</label>
+                    <input type="password" placeholder="Digite sua senha" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 10px;">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet / Seletores dos Passos -->
+    <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+    
+    <!-- Painel de Seleção (Sub-Modal) -->
+    <div class="bottom-sheet" id="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-body" id="sheet-body">
+            <!-- Conteúdo dinâmico inserido via JS -->
+        </div>
+    </div>
+
+    <!-- Lógica em JavaScript -->
+    <script>
+        // Mapeamento das folgas (0 = Dom, 1 = Seg, 2 = Ter, 3 = Qua, 4 = Qui, 5 = Sex, 6 = Sáb)
+        const escalaPorDia = {
+            0: [], // Domingo - Fechado
+            1: ["Gabriel"], // Segunda - Apenas Gabriel
+            2: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Terça - Todos
+            3: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Quarta - Todos
+            4: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Quinta - Todos
+            5: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Sexta - Todos
+            6: ["Gabriel", "Luan Cezar", "Lerinho Costa"]  // Sábado - Todos
+        };
+
+        const barberData = {
+            filiais: [
+                { id: 1, nome: "Candeias", endereco: "Rua Capitão Médio Osias Ribeiro, 449" }
+            ],
+            profissionais: [
+                { id: 1, nome: "Lerinho Costa", destaque: false, img: "https://via.placeholder.com/50" },
+                { id: 2, nome: "Luan Cezar", destaque: true, img: "https://via.placeholder.com/50" },
+                { id: 3, nome: "Gabriel", destaque: false, img: "https://via.placeholder.com/50" },
+            ],
+            servicos: [
+                { id: 1, nome: "Sobrancelha", preco: 13.50 },
+                { id: 2, nome: "Cabelo", preco: 20.00 },
+                { id: 3, nome: "Barba", preco: 20.00 },
+                { id: 4, nome: "Cabelo + Barba", preco: 35.00 },
+                { id: 5, nome: "Acabamento(PEZINHO)", preco: 10.00 },
+                { id: 6, nome: "Pigmentação(CABELO)", preco: 15.00 },
+                { id: 7, nome: "Pigmentação(BARBA)", preco: 15.00 },
+                { id: 8, nome: "Barba(MAQUINA GERAL - 1 Pente)", preco: 15.00 },
+                { id: 9, nome: "Selagem", preco: 50.00 },
+                { id: 10, nome: "Platinado(CONSULTAR AGENDAMENTO)", preco: 70.00 },
+                { id: 11, nome: "Luzes(CONSULTAR AGENDAMENTO)", preco: 60.00 },
+                { id: 12, nome: "Depilação NARIZ", preco: 8.00 },
+                { id: 13, nome: "Depilação ORELHA", preco: 8.00 },
+                { id: 14, nome: "Depilação NARIZ + ORELHA", preco: 14.00 },
+                { id: 15, nome: "Camuflagem na Barba", preco: 15.00 }          
+            ],
+            horarios: ["09:00", "10:00", "11:00", "13:30", "14:30", "15:30", "16:30"]
+        };
+
+        function getNext7Days() {
+            const days = [];
+            const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+            const today = new Date();
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+
+                const dayIndex = d.getDay();
+                const dayOfWeek = daysOfWeek[dayIndex];
+                const dayNum = String(d.getDate()).padStart(2, '0');
+                const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+
+                days.push({
+                    dayIndex: dayIndex,
+                    dayOfWeek: dayOfWeek,
+                    dayNum: dayNum,
+                    formatted: `${dayOfWeek}, ${dayNum}/${monthNum}`
+                });
+            }
+            return days;
+        }
+
+        let bookingState = {
+            filial: null,
+            profissional: null,
+            servicos: [],
+            data: getNext7Days()[0].formatted,
+            horario: null
+        };
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("sidebar-overlay");
+            sidebar.classList.toggle("open");
+            overlay.style.display = sidebar.classList.contains("open") ? "block" : "none";
+        }
+
+        function openBookingModal() {
+            document.getElementById("booking-modal").classList.add("open");
+        }
+
+        function closeBookingModal() {
+            document.getElementById("booking-modal").classList.remove("open");
+        }
+
+        function openProfileModal() {
+            document.getElementById("profile-modal").classList.add("open");
+        }
+
+        function closeProfileModal() {
+            document.getElementById("profile-modal").classList.remove("open");
+        }
+
+        function openStep(stepName) {
+            const sheet = document.getElementById("bottom-sheet");
+            const overlay = document.getElementById("sheet-overlay");
+            const body = document.getElementById("sheet-body");
+
+            let title = "";
+            let contentHTML = "";
+
+            if (stepName === 'filial') {
+                title = "Selecione a filial";
+                barberData.filiais.forEach(f => {
+                    contentHTML += `
+                        <div class="option-card" onclick="selectFilial('${f.nome}')">
+                            <strong>${f.nome}</strong>
+                            <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">${f.endereco}</p>
+                        </div>`;
+                });
+            } 
+            else if (stepName === 'profissional') {
+                title = "Selecione o profissional";
+                
+                // Pega o índice do dia atualmente selecionado no agendamento
+                const dias = getNext7Days();
+                const diaAtualObj = dias.find(d => d.formatted === bookingState.data);
+                const dayIndex = diaAtualObj ? diaAtualObj.dayIndex : new Date().getDay();
+                const barbeirosDoDia = escalaPorDia[dayIndex] || [];
+
+                contentHTML += `<div class="barber-grid">`;
+                barberData.profissionais.forEach(p => {
+                    const estaDisponivel = barbeirosDoDia.some(nomeBarbeiro => 
+                        p.nome.toLowerCase().includes(nomeBarbeiro.toLowerCase()) ||
+                        nomeBarbeiro.toLowerCase().includes(p.nome.toLowerCase())
+                    );
+
+                    contentHTML += `
+                        <div class="barber-card" 
+                             style="${!estaDisponivel ? 'opacity: 0.4; cursor: not-allowed;' : ''}"
+                             onclick="${estaDisponivel ? `selectBarber('${p.nome}')` : `alert('${p.nome} não atende nesta data!')`}">
+                            <img src="${p.img}" class="barber-img" alt="${p.nome}">
+                            <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
+                            ${!estaDisponivel ? '<span style="font-size: 10px; color: #ef4444; font-weight: bold;">Folga</span>' : ''}
+                        </div>`;
+                });
+                contentHTML += `</div>`;
+            } 
+            else if (stepName === 'servicos') {
+                title = "Selecione os serviços";
+                barberData.servicos.forEach(s => {
+                    const isChecked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
+                    contentHTML += `
+                        <div class="service-item">
+                            <div>
+                                <strong>${s.nome}</strong>
+                                <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
+                            </div>
+                            <input type="checkbox" onchange="toggleService('${s.nome}')" ${isChecked}>
+                        </div>`;
+                });
+            } 
+            else if (stepName === 'horario') {
+                title = "Selecione data e hora";
+                const availableDays = getNext7Days();
+
+                contentHTML += `<div class="date-selector-grid">`;
+                availableDays.forEach(d => {
+                    const isSelected = bookingState.data === d.formatted;
+                    
+                    // 1. Domingo (dayIndex 0) sempre fechado
+                    let isDisabled = (d.dayIndex === 0);
+
+                    // 2. Se já escolheu barbeiro, valida se ele trabalha nesse dia
+                    if (bookingState.profissional && !isDisabled) {
+                        const barbeirosDoDia = escalaPorDia[d.dayIndex] || [];
+                        const trabalhaNesteDia = barbeirosDoDia.some(nomeBarbeiro => 
+                            bookingState.profissional.toLowerCase().includes(nomeBarbeiro.toLowerCase()) ||
+                            nomeBarbeiro.toLowerCase().includes(bookingState.profissional.toLowerCase())
+                        );
+
+                        if (!trabalhaNesteDia) {
+                            isDisabled = true; // Bloqueia Segunda para Lerinho ou Luan
+                        }
+                    }
+
+                    contentHTML += `
+                        <div class="date-col">
+                            <span class="day-name">${d.dayOfWeek}</span>
+                            <button class="day-number-btn ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
+                                ${isDisabled ? 'disabled' : ''}
+                                onclick="${isDisabled ? '' : `selectDate('${d.formatted}')`}">
+                                ${d.dayNum}
+                            </button>
+                        </div>
+                    `;
+                });
+                contentHTML += `</div>`;
+
+                // Seleção de Horários
+                contentHTML += `<p style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 12px;">Horários disponíveis:</p>`;
+                contentHTML += `<div class="time-grid">`;
+                barberData.horarios.forEach(h => {
+                    const isSelected = bookingState.horario === h;
+                    contentHTML += `
+                        <button class="time-btn ${isSelected ? 'selected' : ''}" onclick="selectHorario('${h}')">
+                            ${h}
+                        </button>
+                    `;
+                });
+                contentHTML += `</div>`;
+            }
+
+            body.innerHTML = `
+                <h3 style="margin-bottom: 20px; font-size: 16px; text-align: center;">${title}</h3>
+                ${contentHTML}
+                <button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>
+            `;
+
+            sheet.classList.add("open");
+            overlay.style.display = "block";
+        }
+
+        function closeSheet() {
+            document.getElementById("bottom-sheet").classList.remove("open");
+            document.getElementById("sheet-overlay").style.display = "none";
+        }
+
+        function selectFilial(nome) {
+            bookingState.filial = nome;
+            document.getElementById("selected-filial-label").innerText = nome;
+            closeSheet();
+        }
+
+        function selectBarber(nome) {
+            bookingState.profissional = nome;
+            document.getElementById("selected-barber-label").innerText = nome;
+
+            // Se o dia atualmente selecionado for folga do barbeiro, reseta a data
+            const dias = getNext7Days();
+            const diaAtualObj = dias.find(d => d.formatted === bookingState.data);
+            if (diaAtualObj) {
+                const barbeirosDoDia = escalaPorDia[diaAtualObj.dayIndex] || [];
+                const trabalha = barbeirosDoDia.some(n => nome.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(nome.toLowerCase()));
+                if (!trabalha) {
+                    bookingState.data = null;
+                    document.getElementById("selected-date-label").innerText = "Selecione um horário";
+                }
+            }
+            closeSheet();
+        }
+
+        function toggleService(nome) {
+            const index = bookingState.servicos.indexOf(nome);
+            if (index > -1) {
+                bookingState.servicos.splice(index, 1);
+            } else {
+                bookingState.servicos.push(nome);
+            }
+            document.getElementById("selected-services-label").innerText = 
+                bookingState.servicos.length > 0 ? bookingState.servicos.join(", ") : "Selecione os serviços";
+        }
+
+        function selectDate(dateFormatted) {
+            bookingState.data = dateFormatted;
+            updateDateLabel();
+            openStep('horario');
+        }
+
+        function selectHorario(hora) {
+            bookingState.horario = hora;
+            updateDateLabel();
+            closeSheet();
+        }
+
+        function updateDateLabel() {
+            const label = document.getElementById("selected-date-label");
+            if (bookingState.data && bookingState.horario) {
+                label.innerText = `${bookingState.data} às ${bookingState.horario}`;
+            } else if (bookingState.data) {
+                label.innerText = `${bookingState.data}`;
+            } else {
+                label.innerText = "Selecione um horário";
+            }
+        }
+
+        function submitBooking() {
+            if (!bookingState.filial || !bookingState.profissional || bookingState.servicos.length === 0 || !bookingState.horario) {
+                alert("Por favor, preencha todos os passos antes de agendar.");
+                return;
+            }
+            alert(`Agendamento realizado para ${bookingState.data} às ${bookingState.horario}!`);
+            closeBookingModal();
+        }
+    </script>
+</body>
+</html>
