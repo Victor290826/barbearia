@@ -4,10 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barbearia Lerinho Costa</title>
+    
+    <!-- SDK Oficial do Google Identity Services para Login Real -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <!-- FontAwesome para os ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
+        :root {
+            --cor-dourado: #d2b378;
+            --secondary-color: #1f2937;
+            --background-color: #f9fafb;
+            --text-color: #374151;
+            --cor-fundo: #ffffff;
+        }
         * {
             box-sizing: border-box;
             margin: 0;
@@ -16,7 +27,8 @@
         }
 
         body {
-            background-color: #f4f5f7;
+            background: radial-gradient(circle at center, #f5f5f5 0%, #e5e7eb 50%, #d2b378 100%);
+            background-attachment: fixed;
             color: #1f2937;
             padding-bottom: 30px;
         }
@@ -54,6 +66,22 @@
             justify-content: center;
             color: #6b7280;
             cursor: pointer;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .user-avatar.verified::after {
+            content: "\f058";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            color: #10b981;
+            font-size: 12px;
+            background: #ffffff;
+            border-radius: 50%;
         }
 
         /* Sidebar */
@@ -241,6 +269,7 @@
             padding: 16px;
             margin-bottom: 16px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
         }
 
         .appointment-info {
@@ -264,6 +293,18 @@
             font-size: 13px;
             font-weight: 600;
             color: #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-cancel {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         .btn-primary {
@@ -282,7 +323,32 @@
             gap: 8px;
         }
 
-        /* Modal de Agendamento e Perfil */
+        .google-btn-wrapper {
+            width: 100%;
+            min-height: 44px;
+            margin-bottom: 16px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 16px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .divider span {
+            padding: 0 10px;
+        }
+
+        /* Modal */
         .modal {
             position: fixed;
             top: 0;
@@ -293,6 +359,8 @@
             z-index: 90;
             display: none;
             overflow-y: auto;
+            background: radial-gradient(circle at center, #f5f5f5 0%, #e5e7eb 50%, #d2b378 100%);
+            background-attachment: fixed;
         }
 
         .modal.open {
@@ -355,7 +423,7 @@
             color: #374151;
         }
 
-        /* Bottom Sheet (Painel Inferior) */
+        /* Bottom Sheet */
         .sheet-overlay {
             position: fixed;
             top: 0;
@@ -388,7 +456,6 @@
         .sheet-body {
             overflow-y: auto;
             max-height: calc(85vh - 50px);
-            padding-right: 4px;
         }
 
         .bottom-sheet.open {
@@ -439,20 +506,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
         }
 
         .day-number-btn.selected {
             background-color: #d2b378;
             color: #ffffff;
-        }
-
-        .day-number-btn.disabled,
-        .day-number-btn:disabled {
-            background-color: #e5e7eb !important;
-            color: #9ca3af !important;
-            cursor: not-allowed !important;
-            pointer-events: none;
         }
 
         .time-grid {
@@ -518,9 +576,31 @@
             padding: 12px 0;
             border-bottom: 1px solid #f3f4f6;
         }
+
+        /* Notificação Simulação Email OTP */
+        .toast-email {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: #ffffff;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 200;
+            display: none;
+            font-size: 13px;
+            text-align: center;
+            border-left: 4px solid #d2b378;
+            max-width: 90%;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Toast de Notificação do Código de E-mail enviado (OTP) -->
+    <div id="email-toast" class="toast-email"></div>
 
     <!-- Overlay do Menu Lateral -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
@@ -530,9 +610,10 @@
         <div class="sidebar-header">
             <button class="close-btn" onclick="toggleSidebar()">&times;</button>
             <div class="logo-container">
-                <h2>Barbearia</h2>
-                <h1>LERINHO Costa</h1>
-                <div class="logo-icon"><i class="fa-solid fa-scissors"></i></div>
+              <img src="imagens/logo.jpeg" alt="Barbearia Lerinho Costa" style="border-radius: 50%; width: 100px; height: 100px; margin-bottom: 8px; object-fit: cover;">
+            </div>
+            <div class="logo-container">
+                <h2>Barbearia Lerinho Costa</h2>
             </div>
         </div>
         <nav class="sidebar-menu">
@@ -540,7 +621,7 @@
             <a href="#" class="menu-item"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-ticket"></i> Vantagens Lerinho</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-layer-group"></i> Plano</a>
-            <a href="#" class="menu-item logout"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
+            <a href="#" class="menu-item logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
         </nav>
         <div class="sidebar-footer">
             <p>2026 © Barbearia Lerinho Costa</p>
@@ -548,13 +629,15 @@
     </aside>
 
     <!-- Cabeçalho Superior -->
-    <header class="top-bar">
+    <header class="top-bar" style="background-color: #ffffff;">
         <button class="menu-toggle" onclick="toggleSidebar()">
             <i class="fa-solid fa-bars"></i>
         </button>
-        <h2 class="page-title">Início</h2>
-        <div class="user-avatar" onclick="openProfileModal()">
-            <i class="fa-solid fa-user"></i>
+        <div style="text-align: center;">
+            <img src="imagens/logo.jpeg" alt="Barbearia Lerinho Costa" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover;">
+        </div>
+        <div class="user-avatar" onclick="openProfileModal()" id="user-avatar-icon">
+            <i class="fa-solid fa-user" id="user-avatar-fallback"></i>
         </div>
     </header>
 
@@ -564,41 +647,30 @@
         <!-- Card: Seu Plano -->
         <section class="card">
             <h3 class="card-title">O seu plano</h3>
-            <p class="card-subtitle">Está a aproveitar as vantagens do <strong>Clube Lerinho - Cabelo & Barba</strong></p>
+            <p class="card-subtitle">Você está aproveitando as vantagens do <strong>Clube Lerinho - Cabelo & Barba</strong></p>
             <a href="#" class="card-link">Detalhes sobre o plano <i class="fa-solid fa-arrow-right"></i></a>
         </section>
 
-        <!-- Card Promocional (Dourado) -->
-        <section class="banner-gold">
-            <div class="banner-content">
-                <h3>Conheça as VANTAGENS do CLUBE LERINHO</h3>
-                <p>e obtenha o seu cupão exclusivo</p>
+        <!-- Banner de Suporte / WhatsApp -->
+        <a href="https://wa.me/55DDDSEUNUMERO" target="_blank" style="text-decoration: none; display: block; margin: 16px 0;">
+        <div style="background-color: #25D366; color: #ffffff; padding: 18px 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);">
+            <div>
+                <strong style="display: block; font-size: 1rem; margin-bottom: 4px;">Precisa de ajuda ou remarcar?</strong>
+                <span style="font-size: 0.85rem; opacity: 0.95;">Fale direto com a gente pelo WhatsApp</span>
             </div>
-            <i class="fa-solid fa-arrow-right banner-icon"></i>
-        </section>
+            <i class="fa-brands fa-whatsapp" style="font-size: 2rem; margin-left: 10px;"></i>
+        </div>
+        </a>
 
-        <!-- Secção: Próximos Agendamentos -->
+        <!-- Seção: Próximos Agendamentos -->
         <section class="appointments-section">
             <div class="section-header">
                 <h3>Próximos agendamentos</h3>
                 <a href="#" class="see-all">Ver tudo</a>
             </div>
 
-            <!-- Card de Agendamento Confirmado -->
-            <div class="appointment-card">
-                <div class="appointment-info date">
-                    <i class="fa-regular fa-circle"></i> <span>02 de outubro, 13:30</span>
-                </div>
-                <div class="appointment-info service">
-                    <i class="fa-solid fa-store"></i> <span>Cabelo, Barba</span>
-                </div>
-                <div class="appointment-info barber">
-                    <i class="fa-solid fa-user"></i> <span>Lerinho Costa</span>
-                </div>
-                <div class="appointment-total">
-                    <span>Total: R$ 0,00</span>
-                </div>
-            </div>
+            <!-- Lista Dinâmica de Agendamentos Reais do Usuário -->
+            <div id="appointments-list"></div>
 
             <!-- Botão de Novo Agendamento -->
             <button class="btn-primary" onclick="openBookingModal()">
@@ -607,7 +679,7 @@
         </section>
     </main>
 
-    <!-- Modal / Ecrã de Agendamento -->
+    <!-- Modal de Agendamento -->
     <div class="modal" id="booking-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -617,15 +689,21 @@
             <p class="modal-instruction">Selecione os detalhes do seu agendamento</p>
 
             <div class="booking-steps">
-                <!-- Passo 1: Filial -->
-                <div class="step-item" onclick="openStep('filial')">
-                    <i class="fa-solid fa-store step-icon"></i>
-                    <div class="step-info">
-                        <span class="step-title" id="selected-filial-label">Selecione a filial</span>
+                <div class="location-card" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 14px; font-weight: bold; color: #111827;">
+                            <i class="fa-solid fa-location-dot" style="color: #d2b378; margin-right: 5px;"></i> Candeias
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                            Rua Capitão Médio Osias Ribeiro, 31
+                        </div>
                     </div>
+                    <button onclick="abrirMapa()" style="background: transparent; border: 1px solid #d2b378; color: #d2b378; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                    <i class="fa-solid fa-map-location-dot"></i> Como Chegar
+                    </button>
                 </div>
+                  
 
-                <!-- Passo 2: Profissional -->
                 <div class="step-item" onclick="openStep('profissional')">
                     <i class="fa-solid fa-user step-icon"></i>
                     <div class="step-info">
@@ -633,7 +711,6 @@
                     </div>
                 </div>
 
-                <!-- Passo 3: Serviços -->
                 <div class="step-item" onclick="openStep('servicos')">
                     <i class="fa-solid fa-circle-plus step-icon"></i>
                     <div class="step-info">
@@ -641,7 +718,6 @@
                     </div>
                 </div>
 
-                <!-- Passo 4: Horário -->
                 <div class="step-item" onclick="openStep('horario')">
                     <i class="fa-solid fa-calendar-days step-icon"></i>
                     <div class="step-info">
@@ -654,328 +730,591 @@
         </div>
     </div>
 
-    <!-- Modal de Login / Perfil -->
+    <!-- Modal de Login / Verificação -->
     <div class="modal" id="profile-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <button class="back-btn" onclick="closeProfileModal()"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2>Acessar Conta</h2>
+                <h2 id="login-modal-title">Acessar Conta</h2>
             </div>
-            <p class="modal-instruction">Informe os seus dados para entrar</p>
+            <p class="modal-instruction" id="login-modal-subtitle">Acesse sua conta para agendar</p>
 
-            <form style="display: flex; flex-direction: column; gap: 14px;" onsubmit="event.preventDefault(); alert('Login efetuado com sucesso!'); closeProfileModal();">
-                <div>
-                    <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">E-mail ou Telemóvel</label>
-                    <input type="text" placeholder="Digite seu e-mail ou número" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; box-sizing: border-box;">
+            <!-- Passo 1: Formulário de Entrada com Google e E-mail -->
+            <div id="login-form-container">
+                
+                <!-- Botão Oficial do Google montado automaticamente pela API -->
+                <div id="googleBtnWrapper" class="google-btn-wrapper"></div>
+
+                <div class="divider">
+                    <span>ou envie o código por e-mail</span>
                 </div>
-                <div>
-                    <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">Palavra-passe / Senha</label>
-                    <input type="password" placeholder="Digite sua senha" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px; box-sizing: border-box;">
+
+                <form style="display: flex; flex-direction: column; gap: 14px;" onsubmit="iniciarVerificacaoEmail(event)">
+                    <div>
+                        <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px;">Seu E-mail (Gmail, Hotmail, etc)</label>
+                        <input type="email" id="login-email" placeholder="seu.email@exemplo.com" required style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 14px;">
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 6px;">
+                        <i class="fa-solid fa-paper-plane"></i> Enviar Código de Verificação
+                    </button>
+                </form>
+            </div>
+
+            <!-- Passo 2: Digitar Código OTP de 6 Dígitos -->
+            <div id="otp-form-container" style="display: none; text-align: center;">
+                <i class="fa-regular fa-envelope-open" style="font-size: 38px; color: #d2b378; margin-bottom: 12px;"></i>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 6px;">Digite o código enviado</h3>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 20px;" id="otp-sent-email-label"></p>
+
+                <input type="text" id="otp-input" maxlength="6" placeholder="000000" style="width: 180px; text-align: center; font-size: 24px; letter-spacing: 6px; padding: 10px; border-radius: 10px; border: 2px solid #d2b378; font-weight: 700; margin-bottom: 16px;">
+
+                <button class="btn-primary" onclick="validarCodigoOTP()">
+                    <i class="fa-solid fa-check"></i> Validar e Entrar
+                </button>
+
+                <button onclick="resincronizarFormLogin()" style="background: none; border: none; color: #6b7280; font-size: 12px; margin-top: 14px; cursor: pointer; text-decoration: underline;">
+                    Alterar e-mail ou tentar novamente
+                </button>
+            </div>
+
+            <!-- Passo 3: Dados do Usuário Logado -->
+            <div id="user-info-container" style="display: none; text-align: center;">
+                <div id="user-avatar-display" style="width: 60px; height: 60px; background-color: #fef3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; color: #d2b378; font-size: 24px; background-size: cover; background-position: center;">
+                    <i class="fa-solid fa-user-check" id="user-icon-check"></i>
                 </div>
-                <button type="submit" class="btn-primary" style="margin-top: 10px;">Entrar</button>
-            </form>
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;" id="user-display-name">Conta Verificada</h3>
+                <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;" id="user-display-email"></p>
+                <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px; border-radius: 10px; font-size: 12px; margin-bottom: 20px;">
+                    <i class="fa-solid fa-circle-check"></i> E-mail e identidade verificados com sucesso!
+                </div>
+                <button class="btn-primary" onclick="logout()" style="background-color: #ef4444;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Bottom Sheet / Seletores dos Passos -->
+    <!-- Bottom Sheet -->
     <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
-    
-    <!-- Painel de Seleção (Sub-Modal) -->
     <div class="bottom-sheet" id="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="sheet-body" id="sheet-body">
-            <!-- Conteúdo dinâmico inserido via JS -->
-        </div>
+        <div class="sheet-body" id="sheet-body"></div>
     </div>
 
-    <!-- Lógica em JavaScript -->
     <script>
-        // Mapeamento das folgas (0 = Dom, 1 = Seg, 2 = Ter, 3 = Qua, 4 = Qui, 5 = Sex, 6 = Sáb)
-        const escalaPorDia = {
-            0: [], // Domingo - Fechado
-            1: ["Gabriel"], // Segunda - Apenas Gabriel
-            2: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Terça - Todos
-            3: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Quarta - Todos
-            4: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Quinta - Todos
-            5: ["Gabriel", "Luan Cezar", "Lerinho Costa"], // Sexta - Todos
-            6: ["Gabriel", "Luan Cezar", "Lerinho Costa"]  // Sábado - Todos
+    // =========================================================================
+    // COLE SEU CLIENT_ID GERADO NO GOOGLE CLOUD CONSOLE NA VARIÁVEL ABAIXO:
+    // =========================================================================
+    const GOOGLE_CLIENT_ID = "SEU_CLIENT_ID_AQUI.apps.googleusercontent.com";
+
+    // Dados da Unidade Única
+    const UNIDADE_UNICA = {
+        nome: "Unidade Candeias",
+        endereco: "Rua Capitão Médio Osias Ribeiro, 31",
+        linkMaps: "https://maps.google.com/?q=Rua+Capit%C3%A3o+M%C3%A9dio+Osias+Ribeiro,+31"
+    };
+
+    let usuarioLogado = localStorage.getItem("usuario_logado") || null;
+    let nomeUsuario = localStorage.getItem("nome_usuario") || null;
+    let fotoUsuario = localStorage.getItem("foto_usuario") || null;
+
+    let codigoOTPGerado = null;
+    let emailEmVerificacao = "";
+
+    // 📅 REGRA DAS ESCALAS (0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado)
+    const escalaBarbeiros = {
+        0: [], // Domingo: Fechado
+        1: ["Gabriel"], // Segunda: Apenas Gabriel
+        2: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Terça
+        3: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Quarta
+        4: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Quinta
+        5: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Sexta
+        6: ["Lerinho Costa", "Luan Cezar", "Gabriel"]  // Sábado
+    };
+
+    const barberData = {
+        profissionais: [
+            { id: 1, nome: "Lerinho Costa", img: "https://via.placeholder.com/50" },
+            { id: 2, nome: "Luan Cezar", img: "https://via.placeholder.com/50" },
+            { id: 3, nome: "Gabriel", img: "https://via.placeholder.com/50" }
+        ],
+        servicos: [
+            { id: 1, nome: "Sobrancelha", preco: 13.50 },
+            { id: 2, nome: "Cabelo", preco: 20.00 },
+            { id: 3, nome: "Barba", preco: 20.00 },
+            { id: 4, nome: "Cabelo + Barba", preco: 35.00 },
+            { id: 5, nome: "Acabamento(PEZINHO)", preco: 10.00 },
+            { id: 6, nome: "Pigmentação(CABELO)", preco: 15.00 },
+            { id: 7, nome: "Pigmentação(BARBA)", preco: 15.00 },
+            { id: 8, nome: "Barba(MAQUINA GERAL - 1 Pente)", preco: 15.00 },
+            { id: 9, nome: "Selagem", preco: 50.00 },
+            { id: 10, nome: "Platinado(CONSULTAR AGENDAMENTO)", preco: 70.00 },
+            { id: 11, nome: "Luzes(CONSULTAR AGENDAMENTO)", preco: 60.00 },
+            { id: 12, nome: "Depilação NARIZ", preco: 8.00 },
+            { id: 13, nome: "Depilação ORELHA", preco: 8.00 },
+            { id: 14, nome: "Depilação NARIZ + ORELHA", preco: 14.00 },
+            { id: 15, nome: "Camuflagem na Barba", preco: 15.00 }          
+        ],
+        horarios: ["09:00", "10:00", "11:00", "13:30", "14:30", "15:30", "16:30"]
+    };
+
+    function getNext7Days() {
+        const days = [];
+        const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        const today = new Date();
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const dayIndex = d.getDay();
+            
+            days.push({
+                dayIndex: dayIndex,
+                dayOfWeek: daysOfWeek[dayIndex],
+                dayNum: String(d.getDate()).padStart(2, '0'),
+                formatted: `${daysOfWeek[dayIndex]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+                isClosed: dayIndex === 0
+            });
+        }
+        return days;
+    }
+
+    // Filial vem fixa por padrão
+    let bookingState = {
+        filial: UNIDADE_UNICA.nome,
+        profissional: null,
+        servicos: [],
+        data: null,
+        dayIndex: null,
+        horario: null
+    };
+
+    window.onload = function() {
+        inicializarGoogleOAuth();
+        atualizarInterfaceUsuario();
+        carregarAgendamentosReais();
+    };
+
+    // --- 1. INTEGRAÇÃO REAL DO GOOGLE IDENTITY SERVICES ---
+    function inicializarGoogleOAuth() {
+        if (window.google && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes("SEU_CLIENT_ID_AQUI")) {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.getElementById("googleBtnWrapper"),
+                { 
+                    theme: "outline", 
+                    size: "large", 
+                    text: "continue_with", 
+                    shape: "rectangular",
+                    width: "100%"
+                }
+            );
+        } else {
+            document.getElementById("googleBtnWrapper").innerHTML = `
+                <button class="btn-primary" style="background:#ffffff; color:#374151; border:1px solid #d1d5db;" onclick="alert('Configure o GOOGLE_CLIENT_ID para ativar o login do Google em produção.')">
+                    <i class="fa-brands fa-google" style="color:#ea4335;"></i> Continuar com o Google
+                </button>
+            `;
+        }
+    }
+
+    // --- MODAL DE VANTAGENS ---
+function openVantagensModal() {
+    const modal = document.getElementById("vantagens-modal");
+    if (modal) {
+        modal.classList.add("open");
+        // Se o seu CSS não usar a classe .open, use a linha abaixo:
+        // modal.style.display = "flex";
+    }
+}
+
+function closeVantagensModal() {
+    const modal = document.getElementById("vantagens-modal");
+    if (modal) {
+        modal.classList.remove("open");
+        // Se o seu CSS não usar a classe .open, use a linha abaixo:
+        // modal.style.display = "none";
+    }
+}
+
+    function handleGoogleCredentialResponse(response) {
+        const dadosDecodificados = parseJwt(response.credential);
+
+        if (dadosDecodificados && dadosDecodificados.email_verified) {
+            usuarioLogado = dadosDecodificados.email;
+            nomeUsuario = dadosDecodificados.name;
+            fotoUsuario = dadosDecodificados.picture;
+
+            localStorage.setItem("usuario_logado", usuarioLogado);
+            localStorage.setItem("nome_usuario", nomeUsuario);
+            localStorage.setItem("foto_usuario", fotoUsuario);
+
+            atualizarInterfaceUsuario();
+            carregarAgendamentosReais();
+            closeProfileModal();
+
+            alert(`Bem-vindo(a), ${nomeUsuario}!\nLogin efetuado com: ${usuarioLogado}`);
+        }
+    }
+
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // --- 2. VERIFICAÇÃO DE E-MAIL POR CÓDIGO (OTP) ---
+    function validarFormatoEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regex.test(email)) return false;
+
+        const dominiosInvalidos = ['teste.com', '123.com', 'abc.com', 'mailinator.com', 'tempmail.com'];
+        const dominio = email.split('@')[1];
+        return !dominiosInvalidos.includes(dominio.toLowerCase());
+    }
+
+    function iniciarVerificacaoEmail(event) {
+        event.preventDefault();
+        const email = document.getElementById("login-email").value.trim().toLowerCase();
+
+        if (!validarFormatoEmail(email)) {
+            alert("Informe um e-mail válido real (ex: gmail.com ou hotmail.com)!");
+            return;
+        }
+
+        codigoOTPGerado = Math.floor(100000 + Math.random() * 900000).toString();
+        emailEmVerificacao = email;
+
+        document.getElementById("login-form-container").style.display = "none";
+        document.getElementById("otp-form-container").style.display = "block";
+        document.getElementById("otp-sent-email-label").innerText = `Código enviado para: ${email}`;
+
+        mostrarNotificacaoEmail(email, codigoOTPGerado);
+    }
+
+    function mostrarNotificacaoEmail(email, codigo) {
+        const toast = document.getElementById("email-toast");
+        toast.innerHTML = `<i class="fa-solid fa-envelope"></i> <strong>[Código de Confirmação]</strong><br>Código enviado para <strong>${email}</strong>: <span style="color:#d2b378; font-size:16px; font-weight:bold;">${codigo}</span>`;
+        toast.style.display = "block";
+
+        setTimeout(() => {
+            document.getElementById("otp-input").value = codigo;
+        }, 1000);
+    }
+
+    function validarCodigoOTP() {
+        const codigoDigitado = document.getElementById("otp-input").value.trim();
+
+        if (codigoDigitado === codigoOTPGerado) {
+            usuarioLogado = emailEmVerificacao;
+            nomeUsuario = emailEmVerificacao.split('@')[0];
+            fotoUsuario = null;
+
+            localStorage.setItem("usuario_logado", usuarioLogado);
+            localStorage.setItem("nome_usuario", nomeUsuario);
+            localStorage.removeItem("foto_usuario");
+
+            document.getElementById("email-toast").style.display = "none";
+            atualizarInterfaceUsuario();
+            carregarAgendamentosReais();
+            closeProfileModal();
+            alert("E-mail verificado com sucesso!");
+        } else {
+            alert("Código de verificação incorreto! Verifique e tente novamente.");
+        }
+    }
+
+    function resincronizarFormLogin() {
+        document.getElementById("login-form-container").style.display = "block";
+        document.getElementById("otp-form-container").style.display = "none";
+        document.getElementById("email-toast").style.display = "none";
+    }
+
+    function logout() {
+        usuarioLogado = null;
+        nomeUsuario = null;
+        fotoUsuario = null;
+
+        localStorage.removeItem("usuario_logado");
+        localStorage.removeItem("nome_usuario");
+        localStorage.removeItem("foto_usuario");
+
+        atualizarInterfaceUsuario();
+        carregarAgendamentosReais();
+        closeProfileModal();
+    }
+
+    function atualizarInterfaceUsuario() {
+        const formContainer = document.getElementById("login-form-container");
+        const otpContainer = document.getElementById("otp-form-container");
+        const infoContainer = document.getElementById("user-info-container");
+        const userEmailDisplay = document.getElementById("user-display-email");
+        const userNameDisplay = document.getElementById("user-display-name");
+        const avatarIcon = document.getElementById("user-avatar-icon");
+        const avatarFallback = document.getElementById("user-avatar-fallback");
+        const userAvatarDisplay = document.getElementById("user-avatar-display");
+        const userIconCheck = document.getElementById("user-icon-check");
+
+        if (usuarioLogado) {
+            formContainer.style.display = "none";
+            otpContainer.style.display = "none";
+            infoContainer.style.display = "block";
+            
+            userEmailDisplay.innerText = usuarioLogado;
+            userNameDisplay.innerText = nomeUsuario || "Usuário Verificado";
+            
+            avatarIcon.classList.add("verified");
+
+            if (fotoUsuario) {
+                avatarIcon.style.backgroundImage = `url('${fotoUsuario}')`;
+                avatarFallback.style.display = "none";
+                userAvatarDisplay.style.backgroundImage = `url('${fotoUsuario}')`;
+                userIconCheck.style.display = "none";
+            } else {
+                avatarIcon.style.backgroundImage = "none";
+                avatarFallback.style.display = "block";
+                avatarIcon.style.color = "#d2b378";
+                userAvatarDisplay.style.backgroundImage = "none";
+                userIconCheck.style.display = "block";
+            }
+        } else {
+            resincronizarFormLogin();
+            infoContainer.style.display = "none";
+            avatarIcon.classList.remove("verified");
+            avatarIcon.style.backgroundImage = "none";
+            avatarFallback.style.display = "block";
+            avatarIcon.style.color = "#6b7280";
+        }
+    }
+
+    function carregarAgendamentosReais() {
+        const container = document.getElementById("appointments-list");
+        container.innerHTML = "";
+
+        if (!usuarioLogado) {
+            container.innerHTML = `
+                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
+                    Faça login com seu e-mail verificado para ver e realizar agendamentos.
+                </div>`;
+            return;
+        }
+
+        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
+        const meusAgendamentos = todosAgendamentos.filter(a => a.usuario === usuarioLogado);
+
+        if (meusAgendamentos.length === 0) {
+            container.innerHTML = `
+                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
+                    Você ainda não possui agendamentos.
+                </div>`;
+            return;
+        }
+
+        meusAgendamentos.forEach((ag) => {
+            container.innerHTML += `
+                <div class="appointment-card">
+                    <div class="appointment-info date">
+                        <i class="fa-regular fa-circle"></i> <span>${ag.data}, ${ag.horario}</span>
+                    </div>
+                    <div class="appointment-info service">
+                        <i class="fa-solid fa-store"></i> <span>${ag.servicos.join(", ")}</span>
+                    </div>
+                    <div class="appointment-info barber">
+                        <i class="fa-solid fa-user"></i> <span>${ag.profissional} (${ag.filial})</span>
+                    </div>
+                    <div class="appointment-total">
+                        <span>Total: R$ ${ag.total.toFixed(2)}</span>
+                        <button class="btn-cancel" onclick="cancelarAgendamento(${ag.id})">Cancelar</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function submitBooking() {
+        if (!usuarioLogado) {
+            alert("Você precisa verificar seu e-mail para agendar!");
+            openProfileModal();
+            return;
+        }
+        if (!bookingState.profissional || bookingState.servicos.length === 0 || !bookingState.data || !bookingState.horario) {
+            alert("Preencha todos os passos do agendamento!");
+            return;
+        }
+
+        let valorTotal = 0;
+        bookingState.servicos.forEach(nomeServico => {
+            const s = barberData.servicos.find(item => item.nome === nomeServico);
+            if (s) valorTotal += s.preco;
+        });
+
+        const novoAgendamento = {
+            id: Date.now(),
+            usuario: usuarioLogado,
+            filial: bookingState.filial,
+            profissional: bookingState.profissional,
+            servicos: [...bookingState.servicos],
+            data: bookingState.data,
+            horario: bookingState.horario,
+            total: valorTotal
         };
 
-        const barberData = {
-            filiais: [
-                { id: 1, nome: "Candeias", endereco: "Rua Capitão Médio Osias Ribeiro, 449" }
-            ],
-            profissionais: [
-                { id: 1, nome: "Lerinho Costa", destaque: false, img: "https://via.placeholder.com/50" },
-                { id: 2, nome: "Luan Cezar", destaque: true, img: "https://via.placeholder.com/50" },
-                { id: 3, nome: "Gabriel", destaque: false, img: "https://via.placeholder.com/50" },
-            ],
-            servicos: [
-                { id: 1, nome: "Sobrancelha", preco: 13.50 },
-                { id: 2, nome: "Cabelo", preco: 20.00 },
-                { id: 3, nome: "Barba", preco: 20.00 },
-                { id: 4, nome: "Cabelo + Barba", preco: 35.00 },
-                { id: 5, nome: "Acabamento(PEZINHO)", preco: 10.00 },
-                { id: 6, nome: "Pigmentação(CABELO)", preco: 15.00 },
-                { id: 7, nome: "Pigmentação(BARBA)", preco: 15.00 },
-                { id: 8, nome: "Barba(MAQUINA GERAL - 1 Pente)", preco: 15.00 },
-                { id: 9, nome: "Selagem", preco: 50.00 },
-                { id: 10, nome: "Platinado(CONSULTAR AGENDAMENTO)", preco: 70.00 },
-                { id: 11, nome: "Luzes(CONSULTAR AGENDAMENTO)", preco: 60.00 },
-                { id: 12, nome: "Depilação NARIZ", preco: 8.00 },
-                { id: 13, nome: "Depilação ORELHA", preco: 8.00 },
-                { id: 14, nome: "Depilação NARIZ + ORELHA", preco: 14.00 },
-                { id: 15, nome: "Camuflagem na Barba", preco: 15.00 }          
-            ],
-            horarios: ["09:00", "10:00", "11:00", "13:30", "14:30", "15:30", "16:30"]
-        };
+        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
+        todosAgendamentos.push(novoAgendamento);
+        localStorage.setItem("agendamentos_barbearia", JSON.stringify(todosAgendamentos));
 
-        function getNext7Days() {
-            const days = [];
-            const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-            const today = new Date();
+        alert("Agendamento efetuado com sucesso!");
+        closeBookingModal();
+        carregarAgendamentosReais();
+    }
 
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(today);
-                d.setDate(today.getDate() + i);
+    function cancelarAgendamento(id) {
+        if (confirm("Deseja realmente cancelar este agendamento?")) {
+            let todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
+            todosAgendamentos = todosAgendamentos.filter(a => a.id !== id);
+            localStorage.setItem("agendamentos_barbearia", JSON.stringify(todosAgendamentos));
+            carregarAgendamentosReais();
+        }
+    }
 
-                const dayIndex = d.getDay();
-                const dayOfWeek = daysOfWeek[dayIndex];
-                const dayNum = String(d.getDate()).padStart(2, '0');
-                const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
+        sidebar.classList.toggle("open");
+        overlay.style.display = sidebar.classList.contains("open") ? "block" : "none";
+    }
 
-                days.push({
-                    dayIndex: dayIndex,
-                    dayOfWeek: dayOfWeek,
-                    dayNum: dayNum,
-                    formatted: `${dayOfWeek}, ${dayNum}/${monthNum}`
+    function openBookingModal() { document.getElementById("booking-modal").classList.add("open"); }
+    function closeBookingModal() { document.getElementById("booking-modal").classList.remove("open"); }
+    function openProfileModal() { document.getElementById("profile-modal").classList.add("open"); }
+    function closeProfileModal() { document.getElementById("profile-modal").classList.remove("open"); }
+
+    function abrirMapa() {
+        window.open(UNIDADE_UNICA.linkMaps, "_blank");
+    }
+
+    // --- SELEÇÃO DE PASSOS (SEM OPÇÃO DE SELECIONAR FILIAL) ---
+    function openStep(stepName) {
+        const sheet = document.getElementById("bottom-sheet");
+        const overlay = document.getElementById("sheet-overlay");
+        const body = document.getElementById("sheet-body");
+        let contentHTML = "";
+
+        if (stepName === 'profissional') {
+            contentHTML += `<div class="barber-grid">`;
+            
+            let barbeirosDisponiveis = barberData.profissionais;
+            if (bookingState.dayIndex !== null) {
+                const nomesPermitidos = escalaBarbeiros[bookingState.dayIndex] || [];
+                barbeirosDisponiveis = barberData.profissionais.filter(p => nomesPermitidos.includes(p.nome));
+            }
+
+            if (barbeirosDisponiveis.length === 0) {
+                contentHTML += `<p style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 13px;">Nenhum barbeiro disponível para a data selecionada.</p>`;
+            } else {
+                barbeirosDisponiveis.forEach(p => {
+                    contentHTML += `
+                        <div class="barber-card" onclick="selectBarber('${p.nome}')">
+                            <img src="${p.img}" class="barber-img">
+                            <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
+                        </div>`;
                 });
             }
-            return days;
-        }
-
-        let bookingState = {
-            filial: null,
-            profissional: null,
-            servicos: [],
-            data: getNext7Days()[0].formatted,
-            horario: null
-        };
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById("sidebar");
-            const overlay = document.getElementById("sidebar-overlay");
-            sidebar.classList.toggle("open");
-            overlay.style.display = sidebar.classList.contains("open") ? "block" : "none";
-        }
-
-        function openBookingModal() {
-            document.getElementById("booking-modal").classList.add("open");
-        }
-
-        function closeBookingModal() {
-            document.getElementById("booking-modal").classList.remove("open");
-        }
-
-        function openProfileModal() {
-            document.getElementById("profile-modal").classList.add("open");
-        }
-
-        function closeProfileModal() {
-            document.getElementById("profile-modal").classList.remove("open");
-        }
-
-        function openStep(stepName) {
-            const sheet = document.getElementById("bottom-sheet");
-            const overlay = document.getElementById("sheet-overlay");
-            const body = document.getElementById("sheet-body");
-
-            let title = "";
-            let contentHTML = "";
-
-            if (stepName === 'filial') {
-                title = "Selecione a filial";
-                barberData.filiais.forEach(f => {
-                    contentHTML += `
-                        <div class="option-card" onclick="selectFilial('${f.nome}')">
-                            <strong>${f.nome}</strong>
-                            <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">${f.endereco}</p>
-                        </div>`;
-                });
-            } 
-            else if (stepName === 'profissional') {
-                title = "Selecione o profissional";
+            contentHTML += `</div>`;
+        } else if (stepName === 'servicos') {
+            barberData.servicos.forEach(s => {
+                const checked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
+                contentHTML += `<div class="service-item"><div><strong>${s.nome}</strong><div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div></div><input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}></div>`;
+            });
+        } else if (stepName === 'horario') {
+            const availableDays = getNext7Days();
+            contentHTML += `<div class="date-selector-grid">`;
+            
+            availableDays.forEach(d => {
+                const selected = bookingState.data === d.formatted;
                 
-                // Pega o índice do dia atualmente selecionado no agendamento
-                const dias = getNext7Days();
-                const diaAtualObj = dias.find(d => d.formatted === bookingState.data);
-                const dayIndex = diaAtualObj ? diaAtualObj.dayIndex : new Date().getDay();
-                const barbeirosDoDia = escalaPorDia[dayIndex] || [];
+                let trabalhaNoDia = true;
+                if (bookingState.profissional) {
+                    const barbeirosDoDia = escalaBarbeiros[d.dayIndex] || [];
+                    trabalhaNoDia = barbeirosDoDia.includes(bookingState.profissional);
+                }
 
-                contentHTML += `<div class="barber-grid">`;
-                barberData.profissionais.forEach(p => {
-                    const estaDisponivel = barbeirosDoDia.some(nomeBarbeiro => 
-                        p.nome.toLowerCase().includes(nomeBarbeiro.toLowerCase()) ||
-                        nomeBarbeiro.toLowerCase().includes(p.nome.toLowerCase())
-                    );
-
+                if (d.isClosed) {
                     contentHTML += `
-                        <div class="barber-card" 
-                             style="${!estaDisponivel ? 'opacity: 0.4; cursor: not-allowed;' : ''}"
-                             onclick="${estaDisponivel ? `selectBarber('${p.nome}')` : `alert('${p.nome} não atende nesta data!')`}">
-                            <img src="${p.img}" class="barber-img" alt="${p.nome}">
-                            <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
-                            ${!estaDisponivel ? '<span style="font-size: 10px; color: #ef4444; font-weight: bold;">Folga</span>' : ''}
+                        <div class="date-col" style="opacity: 0.4;">
+                            <span class="day-name">${d.dayOfWeek}</span>
+                            <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                            <span style="font-size: 9px; color: #ef4444; font-weight: bold;">Fechado</span>
                         </div>`;
-                });
-                contentHTML += `</div>`;
-            } 
-            else if (stepName === 'servicos') {
-                title = "Selecione os serviços";
-                barberData.servicos.forEach(s => {
-                    const isChecked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
+                } else if (!trabalhaNoDia) {
                     contentHTML += `
-                        <div class="service-item">
-                            <div>
-                                <strong>${s.nome}</strong>
-                                <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
-                            </div>
-                            <input type="checkbox" onchange="toggleService('${s.nome}')" ${isChecked}>
+                        <div class="date-col" style="opacity: 0.4;">
+                            <span class="day-name">${d.dayOfWeek}</span>
+                            <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                            <span style="font-size: 9px; color: #6b7280; font-weight: bold;">Folga</span>
                         </div>`;
-                });
-            } 
-            else if (stepName === 'horario') {
-                title = "Selecione data e hora";
-                const availableDays = getNext7Days();
-
-                contentHTML += `<div class="date-selector-grid">`;
-                availableDays.forEach(d => {
-                    const isSelected = bookingState.data === d.formatted;
-                    
-                    // 1. Domingo (dayIndex 0) sempre fechado
-                    let isDisabled = (d.dayIndex === 0);
-
-                    // 2. Se já escolheu barbeiro, valida se ele trabalha nesse dia
-                    if (bookingState.profissional && !isDisabled) {
-                        const barbeirosDoDia = escalaPorDia[d.dayIndex] || [];
-                        const trabalhaNesteDia = barbeirosDoDia.some(nomeBarbeiro => 
-                            bookingState.profissional.toLowerCase().includes(nomeBarbeiro.toLowerCase()) ||
-                            nomeBarbeiro.toLowerCase().includes(bookingState.profissional.toLowerCase())
-                        );
-
-                        if (!trabalhaNesteDia) {
-                            isDisabled = true; // Bloqueia Segunda para Lerinho ou Luan
-                        }
-                    }
-
+                } else {
                     contentHTML += `
                         <div class="date-col">
                             <span class="day-name">${d.dayOfWeek}</span>
-                            <button class="day-number-btn ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}" 
-                                ${isDisabled ? 'disabled' : ''}
-                                onclick="${isDisabled ? '' : `selectDate('${d.formatted}')`}">
-                                ${d.dayNum}
-                            </button>
-                        </div>
-                    `;
-                });
-                contentHTML += `</div>`;
-
-                // Seleção de Horários
-                contentHTML += `<p style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 12px;">Horários disponíveis:</p>`;
-                contentHTML += `<div class="time-grid">`;
-                barberData.horarios.forEach(h => {
-                    const isSelected = bookingState.horario === h;
-                    contentHTML += `
-                        <button class="time-btn ${isSelected ? 'selected' : ''}" onclick="selectHorario('${h}')">
-                            ${h}
-                        </button>
-                    `;
-                });
-                contentHTML += `</div>`;
-            }
-
-            body.innerHTML = `
-                <h3 style="margin-bottom: 20px; font-size: 16px; text-align: center;">${title}</h3>
-                ${contentHTML}
-                <button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>
-            `;
-
-            sheet.classList.add("open");
-            overlay.style.display = "block";
-        }
-
-        function closeSheet() {
-            document.getElementById("bottom-sheet").classList.remove("open");
-            document.getElementById("sheet-overlay").style.display = "none";
-        }
-
-        function selectFilial(nome) {
-            bookingState.filial = nome;
-            document.getElementById("selected-filial-label").innerText = nome;
-            closeSheet();
-        }
-
-        function selectBarber(nome) {
-            bookingState.profissional = nome;
-            document.getElementById("selected-barber-label").innerText = nome;
-
-            // Se o dia atualmente selecionado for folga do barbeiro, reseta a data
-            const dias = getNext7Days();
-            const diaAtualObj = dias.find(d => d.formatted === bookingState.data);
-            if (diaAtualObj) {
-                const barbeirosDoDia = escalaPorDia[diaAtualObj.dayIndex] || [];
-                const trabalha = barbeirosDoDia.some(n => nome.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(nome.toLowerCase()));
-                if (!trabalha) {
-                    bookingState.data = null;
-                    document.getElementById("selected-date-label").innerText = "Selecione um horário";
+                            <button class="day-number-btn ${selected ? 'selected' : ''}" onclick="selectDate('${d.formatted}', ${d.dayIndex})">${d.dayNum}</button>
+                        </div>`;
                 }
-            }
-            closeSheet();
-        }
+            });
 
-        function toggleService(nome) {
-            const index = bookingState.servicos.indexOf(nome);
-            if (index > -1) {
-                bookingState.servicos.splice(index, 1);
+            contentHTML += `</div><div class="time-grid">`;
+            if (bookingState.data) {
+                barberData.horarios.forEach(h => {
+                    const selected = bookingState.horario === h;
+                    contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
+                });
             } else {
-                bookingState.servicos.push(nome);
+                contentHTML += `<p style="font-size: 13px; color: #6b7280;">Selecione um dia acima para ver os horários.</p>`;
             }
-            document.getElementById("selected-services-label").innerText = 
-                bookingState.servicos.length > 0 ? bookingState.servicos.join(", ") : "Selecione os serviços";
+            contentHTML += `</div>`;
         }
 
-        function selectDate(dateFormatted) {
-            bookingState.data = dateFormatted;
-            updateDateLabel();
-            openStep('horario');
-        }
+        body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
+        sheet.classList.add("open");
+        overlay.style.display = "block";
+    }
 
-        function selectHorario(hora) {
-            bookingState.horario = hora;
-            updateDateLabel();
-            closeSheet();
-        }
+    function closeSheet() {
+        document.getElementById("bottom-sheet").classList.remove("open");
+        document.getElementById("sheet-overlay").style.display = "none";
+    }
 
-        function updateDateLabel() {
-            const label = document.getElementById("selected-date-label");
-            if (bookingState.data && bookingState.horario) {
-                label.innerText = `${bookingState.data} às ${bookingState.horario}`;
-            } else if (bookingState.data) {
-                label.innerText = `${bookingState.data}`;
-            } else {
-                label.innerText = "Selecione um horário";
-            }
-        }
+    function selectBarber(nome) { bookingState.profissional = nome; document.getElementById("selected-barber-label").innerText = nome; closeSheet(); }
+    
+    function toggleService(nome) {
+        const index = bookingState.servicos.indexOf(nome);
+        if (index > -1) bookingState.servicos.splice(index, 1);
+        else bookingState.servicos.push(nome);
+        document.getElementById("selected-services-label").innerText = bookingState.servicos.length > 0 ? bookingState.servicos.join(", ") : "Selecione os serviços";
+    }
 
-        function submitBooking() {
-            if (!bookingState.filial || !bookingState.profissional || bookingState.servicos.length === 0 || !bookingState.horario) {
-                alert("Por favor, preencha todos os passos antes de agendar.");
-                return;
-            }
-            alert(`Agendamento realizado para ${bookingState.data} às ${bookingState.horario}!`);
-            closeBookingModal();
-        }
-    </script>
+    function selectDate(formattedDate, dayIndex) { 
+        bookingState.data = formattedDate; 
+        bookingState.dayIndex = dayIndex;
+        openStep('horario'); 
+    }
+
+    function selectHorario(h) { 
+        bookingState.horario = h; 
+        document.getElementById("selected-date-label").innerText = `${bookingState.data} às ${h}`; 
+        openStep('horario'); 
+    }
+</script>
 </body>
 </html>
