@@ -680,56 +680,63 @@
         </section>
     </main>
 
-    <!-- Modal de Agendamento -->
-    <div class="modal" id="booking-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="back-btn" onclick="closeBookingModal()"><i class="fa-solid fa-chevron-left"></i></button>
-                <h2>Novo Agendamento</h2>
-            </div>
-            <p class="modal-instruction">Selecione os detalhes do seu agendamento</p>
-
-            <div class="booking-steps">
-                <div class="location-card" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 14px; font-weight: bold; color: #111827;">
-                            <i class="fa-solid fa-location-dot" style="color: #d2b378; margin-right: 5px;"></i> Candeias
-                        </div>
-                        <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
-                            Rua Capitão Médio Osias Ribeiro, 31
-                        </div>
-                    </div>
-                    <button onclick="abrirMapa()" style="background: transparent; border: 1px solid #d2b378; color: #d2b378; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">
-                    <i class="fa-solid fa-map-location-dot"></i> Como Chegar
-                    </button>
-                </div>
-                  
-
-                <div class="step-item" onclick="openStep('profissional')">
-                    <i class="fa-solid fa-user step-icon"></i>
-                    <div class="step-info">
-                        <span class="step-title" id="selected-barber-label">Selecione um profissional</span>
-                    </div>
-                </div>
-
-                <div class="step-item" onclick="openStep('servicos')">
-                    <i class="fa-solid fa-circle-plus step-icon"></i>
-                    <div class="step-info">
-                        <span class="step-title" id="selected-services-label">Selecione os serviços</span>
-                    </div>
-                </div>
-
-                <div class="step-item" onclick="openStep('horario')">
-                    <i class="fa-solid fa-calendar-days step-icon"></i>
-                    <div class="step-info">
-                        <span class="step-title" id="selected-date-label">Selecione um horário</span>
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn-primary confirm-btn" onclick="submitBooking()">Agendar</button>
+   <!-- Modal de Agendamento -->
+<div class="modal" id="booking-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button class="back-btn" onclick="closeBookingModal()"><i class="fa-solid fa-chevron-left"></i></button>
+            <h2>Novo Agendamento</h2>
         </div>
+        <p class="modal-instruction">Selecione os detalhes do seu agendamento</p>
+
+        <div class="booking-steps">
+            <div class="location-card" style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 14px; font-weight: bold; color: #111827;">
+                        <i class="fa-solid fa-location-dot" style="color: #d2b378; margin-right: 5px;"></i> Candeias
+                    </div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                        Rua Capitão Médio Osias Ribeiro, 31
+                    </div>
+                </div>
+                <button onclick="abrirMapa()" style="background: transparent; border: 1px solid #d2b378; color: #d2b378; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                    <i class="fa-solid fa-map-location-dot"></i> Como Chegar
+                </button>
+            </div>
+
+            <div class="step-item" onclick="openStep('profissional')">
+                <i class="fa-solid fa-user step-icon"></i>
+                <div class="step-info">
+                    <span class="step-title" id="selected-barber-label">Selecione um profissional</span>
+                </div>
+            </div>
+
+            <div class="step-item" onclick="openStep('servicos')">
+                <i class="fa-solid fa-circle-plus step-icon"></i>
+                <div class="step-info">
+                    <span class="step-title" id="selected-services-label">Selecione os serviços</span>
+                </div>
+            </div>
+
+            <div class="step-item" onclick="openStep('horario')">
+                <i class="fa-solid fa-calendar-days step-icon"></i>
+                <div class="step-info">
+                    <span class="step-title" id="selected-date-label">Selecione um horário</span>
+                </div>
+            </div>
+
+            <!-- Campo adicionado para capturar o WhatsApp do cliente -->
+            <div class="step-item" style="cursor: text;">
+                <i class="fa-brands fa-whatsapp step-icon" style="color: #25D366;"></i>
+                <div class="step-info" style="width: 100%;">
+                    <input type="tel" id="telefoneCliente" placeholder="Seu WhatsApp: (75) 99999-9999" required style="width: 100%; border: none; background: transparent; outline: none; font-size: 14px; font-weight: 500; color: inherit;">
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-primary confirm-btn" onclick="submitBooking()">Agendar</button>
     </div>
+</div>
 
     <!-- Modal de Login / Verificação -->
     <div class="modal" id="profile-modal">
@@ -1146,17 +1153,17 @@
         });
 }
 
-function cancelarAgendamento(idDoc) {
-    if (confirm("Deseja realmente cancelar este agendamento?")) {
-        db.collection("agendamentos").doc(idDoc).update({
-            status: "Cancelado"
-        }).then(() => {
-            alert("Agendamento cancelado!");
-        }).catch(err => {
-            alert("Erro ao cancelar: " + err.message);
-        });
+    function cancelarAgendamento(idDoc) {
+        if (confirm("Deseja realmente cancelar este agendamento?")) {
+            db.collection("agendamentos").doc(idDoc).update({
+             status: "Cancelado"
+            }).then(() => {
+                alert("Agendamento cancelado!");
+            }).catch(err => {
+                alert("Erro ao cancelar: " + err.message);
+            });
+        }
     }
-}
 
     // Função auxiliar necessária para conversão de horários em minutos
     function converterHorarioParaMinutos(horarioStr) {
@@ -1176,9 +1183,34 @@ function cancelarAgendamento(idDoc) {
         return;
     }
 
+    // Captura e valida o número de WhatsApp/Telefone do cliente no formulário
+    const inputTelefone = document.getElementById("telefoneCliente");
+    const telefone = inputTelefone ? inputTelefone.value.trim() : "";
+
+    if (inputTelefone && !telefone) {
+        alert("Por favor, informe seu número de WhatsApp / Celular!");
+        return;
+    }
+
     try {
         // =========================================================================
-        // VALIDAÇÃO DE INTERVALO MÍNIMO DE 2 HORAS (120 MINUTOS) NO FIREBASE
+        // 1. VALIDAÇÃO DE HORÁRIO OCUPADO (BLOQUEIA DUPLICIDADES PARA O MESMO BARBEIRO)
+        // =========================================================================
+        const checagemHorario = await db.collection("agendamentos")
+            .where("profissional", "==", bookingState.profissional)
+            .where("data", "==", bookingState.data)
+            .where("horario", "==", bookingState.horario)
+            .get();
+
+        const horarioOcupado = checagemHorario.docs.some(doc => doc.data().status !== "Cancelado");
+
+        if (horarioOcupado) {
+            alert("Este horário já foi agendado por outro cliente! Por favor, escolha outro horário.");
+            return;
+        }
+
+        // =========================================================================
+        // 2. VALIDAÇÃO DE INTERVALO MÍNIMO DE 1 HORAS (60 MINUTOS) NO FIREBASE
         // =========================================================================
         const snapshot = await db.collection("agendamentos")
             .where("usuario", "==", usuarioLogado)
@@ -1196,8 +1228,8 @@ function cancelarAgendamento(idDoc) {
             const existenteMinutos = converterHorarioParaMinutos(ag.horario);
             const diferencaEmMinutos = Math.abs(novoMinutos - existenteMinutos);
 
-            if (diferencaEmMinutos < 120) {
-                alert(`Você já possui um agendamento no dia ${ag.data} às ${ag.horario}.\n\nPara agendar outro horário no mesmo dia, é necessário um intervalo mínimo de 2 horas!`);
+            if (diferencaEmMinutos < 60) {
+                alert(`Você já possui um agendamento no dia ${ag.data} às ${ag.horario}.\n\nPara agendar outro horário no mesmo dia, é necessário um intervalo mínimo de 1 hora!`);
                 return;
             }
         }
@@ -1211,6 +1243,7 @@ function cancelarAgendamento(idDoc) {
 
         const novoAgendamento = {
             usuario: usuarioLogado,
+            telefone: telefone, // Salva o número de contato do cliente
             filial: bookingState.filial,
             profissional: bookingState.profissional,
             servicos: [...bookingState.servicos],
@@ -1239,16 +1272,17 @@ function cancelarAgendamento(idDoc) {
         if (labelServices) labelServices.innerText = "Selecione os serviços";
         if (labelDate) labelDate.innerText = "Selecione um horário";
 
+        if (inputTelefone) inputTelefone.value = "";
+
         alert("Agendamento efetuado com sucesso!");
         closeBookingModal();
         carregarAgendamentosReais();
 
     } catch (error) {
         console.error("Erro ao salvar agendamento no Firebase: ", error);
-        alert("Ocorreu um erro ao realizar o agendamento. Tente novamente.");
+        alert("Ocorreu um erro ao realizar o agendamento: " + error.message);
     }
-}
-
+    }
     // =========================================================================
     // AUXILIARES DE NAVEGAÇÃO E MODAIS
     // =========================================================================
