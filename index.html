@@ -949,24 +949,21 @@ function handleCredentialResponse(response) {
   const usuario = {
     nome: dadosUtilizador.name,
     email: dadosUtilizador.email,
-    foto: dadosUtilizador.picture,
-    logado: true,
-    verificado: true
+    foto: dadosUtilizador.picture
   };
 
-  // Guarda os dados em todas as chaves de verificação que a aplicação possa consultar
+  // 1. Define a variável global que a função submitBooking() valida (linha 1155)
+  usuarioLogado = usuario;
+
+  // 2. Guarda no localStorage para manter a sessão ao recarregar a página
+  localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
   localStorage.setItem('usuarioBarbearia', JSON.stringify(usuario));
-  localStorage.setItem('usuario', JSON.stringify(usuario));
-  localStorage.setItem('clienteEmail', usuario.email);
-  localStorage.setItem('emailVerificado', 'true');
 
   alert(`Bem-vindo(a), ${usuario.nome}!`);
 
-  // Tenta fechar o modal de login automaticamente sem precisar recarregar a página do zero
+  // 3. Fecha o modal de login automaticamente para poderes concluir o agendamento
   if (typeof closeProfileModal === 'function') {
     closeProfileModal();
-  } else {
-    location.reload();
   }
 }
 
