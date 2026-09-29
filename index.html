@@ -804,33 +804,25 @@
 
     <script>
     // =========================================================================
-    // COLE SEU CLIENT_ID GERADO NO GOOGLE CLOUD CONSOLE NA VARIÁVEL ABAIXO:
+    // CONFIGURAÇÕES E ESTADO GLOBAL
     // =========================================================================
-   const GOOGLE_CLIENT_ID = "22163531311-2jn8s94c8ae6gnod12ggbrtki21uecql.apps.googleusercontent.com";
+    const GOOGLE_CLIENT_ID = "22163531311-2jn8s94c8ae6gnod12ggbrtki21uecql.apps.googleusercontent.com";
 
-    // Dados da Unidade Única
     const UNIDADE_UNICA = {
         nome: "Unidade Candeias",
         endereco: "Rua Capitão Médio Osias Ribeiro, 31",
         linkMaps: "https://maps.google.com/?q=Rua+Capit%C3%A3o+M%C3%A9dio+Osias+Ribeiro,+31"
     };
 
-    let usuarioLogado = localStorage.getItem("usuario_logado") || null;
-    let nomeUsuario = localStorage.getItem("nome_usuario") || null;
-    let fotoUsuario = localStorage.getItem("foto_usuario") || null;
-
-    let codigoOTPGerado = null;
-    let emailEmVerificacao = "";
-
-    // 📅 REGRA DAS ESCALAS (0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado)
+    // Escala de Barbeiros (0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado)
     const escalaBarbeiros = {
         0: [], // Domingo: Fechado
         1: ["Gabriel"], // Segunda: Apenas Gabriel
-        2: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Terça
-        3: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Quarta
-        4: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Quinta
-        5: ["Lerinho Costa", "Luan Cezar", "Gabriel"], // Sexta
-        6: ["Lerinho Costa", "Luan Cezar", "Gabriel"]  // Sábado
+        2: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
+        3: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
+        4: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
+        5: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
+        6: ["Lerinho Costa", "Luan Cezar", "Gabriel"]
     };
 
     const barberData = {
@@ -854,126 +846,78 @@
             { id: 12, nome: "Depilação NARIZ", preco: 8.00 },
             { id: 13, nome: "Depilação ORELHA", preco: 8.00 },
             { id: 14, nome: "Depilação NARIZ + ORELHA", preco: 14.00 },
-            { id: 15, nome: "Camuflagem na Barba", preco: 15.00 }          
+            { id: 15, nome: "Camuflagem na Barba", preco: 15.00 }
         ],
         horarios: ["09:00", "10:00", "11:00", "13:30", "14:30", "15:30", "16:30"]
     };
 
-    function getNext7Days() {
-        const days = [];
-        const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-        const today = new Date();
+    let usuarioLogado = localStorage.getItem("usuario_logado") || null;
+    let nomeUsuario = localStorage.getItem("nome_usuario") || null;
+    let fotoUsuario = localStorage.getItem("foto_usuario") || null;
 
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(today);
-            d.setDate(today.getDate() + i);
-            const dayIndex = d.getDay();
-            
-            days.push({
-                dayIndex: dayIndex,
-                dayOfWeek: daysOfWeek[dayIndex],
-                dayNum: String(d.getDate()).padStart(2, '0'),
-                formatted: `${daysOfWeek[dayIndex]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-                isClosed: dayIndex === 0
-            });
-        }
-        return days;
-    }
+    let codigoOTPGerado = null;
+    let emailEmVerificacao = "";
 
-    // Filial vem fixa por padrão
     let bookingState = {
         filial: UNIDADE_UNICA.nome,
         profissional: null,
-        servicos: [],
+        servicos: [], // Guarda os nomes dos serviços
         data: null,
         dayIndex: null,
         horario: null
     };
 
-    window.onload = function() {
-        inicializarGoogleOAuth();
+    // =========================================================================
+    // INICIALIZAÇÃO DA PÁGINA E AUTENTICAÇÃO GOOGLE
+    // =========================================================================
+    window.onload = function () {
+        if (window.google && GOOGLE_CLIENT_ID) {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleCredentialResponse,
+                auto_select: false
+            });
+
+            const btnWrapper = document.getElementById("googleBtnWrapper");
+            if (btnWrapper) {
+                google.accounts.id.renderButton(btnWrapper, {
+                    theme: "outline",
+                    size: "large",
+                    width: "100%",
+                    text: "continue_with"
+                });
+            }
+
+            google.accounts.id.prompt();
+        }
+
         atualizarInterfaceUsuario();
         carregarAgendamentosReais();
     };
 
-    // --- 1. INTEGRAÇÃO REAL DO GOOGLE IDENTITY SERVICES ---
-    function inicializarGoogleOAuth() {
-        if (window.google && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes("SEU_CLIENT_ID_AQUI")) {
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: handleGoogleCredentialResponse
-            });
+    function handleCredentialResponse(response) {
+        const dadosUtilizador = parseJwt(response.credential);
+        if (!dadosUtilizador) return;
 
-            google.accounts.id.renderButton(
-                document.getElementById("googleBtnWrapper"),
-                { 
-                    theme: "outline", 
-                    size: "large", 
-                    text: "continue_with", 
-                    shape: "rectangular",
-                    width: "100%"
-                }
-            );
-        } else {
-            document.getElementById("googleBtnWrapper").innerHTML = `
-                <button class="btn-primary" style="background:#ffffff; color:#374151; border:1px solid #d1d5db;" onclick="alert('Configure o GOOGLE_CLIENT_ID para ativar o login do Google em produção.')">
-                    <i class="fa-brands fa-google" style="color:#ea4335;"></i> Continuar com o Google
-                </button>
-            `;
-        }
+        usuarioLogado = dadosUtilizador.email;
+        nomeUsuario = dadosUtilizador.name;
+        fotoUsuario = dadosUtilizador.picture;
+
+        localStorage.setItem("usuario_logado", usuarioLogado);
+        localStorage.setItem("nome_usuario", nomeUsuario);
+        localStorage.setItem("foto_usuario", fotoUsuario);
+
+        atualizarInterfaceUsuario();
+        carregarAgendamentosReais();
+        closeProfileModal();
+        alert(`Login efetuado com sucesso! Bem-vindo(a), ${nomeUsuario}`);
     }
-
-    // --- MODAL DE VANTAGENS ---
-function openVantagensModal() {
-    const modal = document.getElementById("vantagens-modal");
-    if (modal) {
-        modal.classList.add("open");
-        // Se o seu CSS não usar a classe .open, use a linha abaixo:
-        // modal.style.display = "flex";
-    }
-}
-
-function closeVantagensModal() {
-    const modal = document.getElementById("vantagens-modal");
-    if (modal) {
-        modal.classList.remove("open");
-        // Se o seu CSS não usar a classe .open, use a linha abaixo:
-        // modal.style.display = "none";
-    }
-}
-
-function handleCredentialResponse(response) {
-  const dadosUtilizador = parseJwt(response.credential);
-
-  // 1. Define as variáveis globais que o site utiliza
-  usuarioLogado = dadosUtilizador.email;
-  nomeUsuario = dadosUtilizador.name;
-  fotoUsuario = dadosUtilizador.picture;
-
-  // 2. Guarda no localStorage
-  localStorage.setItem("usuario_logado", dadosUtilizador.email);
-  localStorage.setItem("nome_usuario", dadosUtilizador.name);
-  localStorage.setItem("foto_usuario", dadosUtilizador.picture);
-
-  // 3. Se existir um elemento no HTML para mostrar o nome/e-mail do utilizador no topo, atualiza-o
-  const displayEmail = document.getElementById("userEmailDisplay");
-  if (displayEmail) {
-    displayEmail.textContent = dadosUtilizador.email;
-  }
-
-  // 4. Fecha apenas a janela (modal) de login SEM recarregar a página
-  if (typeof closeProfileModal === 'function') {
-    closeProfileModal();
-  }
-
-  alert(`Login efetuado com sucesso! Bem-vindo(a), ${dadosUtilizador.name}`);
-}
 
     function parseJwt(token) {
         try {
             const base64Url = token.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
                 return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
             }).join(''));
             return JSON.parse(jsonPayload);
@@ -982,7 +926,9 @@ function handleCredentialResponse(response) {
         }
     }
 
-    // --- 2. VERIFICAÇÃO DE E-MAIL POR CÓDIGO (OTP) ---
+    // =========================================================================
+    // AUTENTICAÇÃO POR E-MAIL (OTP)
+    // =========================================================================
     function validarFormatoEmail(email) {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!regex.test(email)) return false;
@@ -1013,12 +959,15 @@ function handleCredentialResponse(response) {
 
     function mostrarNotificacaoEmail(email, codigo) {
         const toast = document.getElementById("email-toast");
-        toast.innerHTML = `<i class="fa-solid fa-envelope"></i> <strong>[Código de Confirmação]</strong><br>Código enviado para <strong>${email}</strong>: <span style="color:#d2b378; font-size:16px; font-weight:bold;">${codigo}</span>`;
-        toast.style.display = "block";
+        if (toast) {
+            toast.innerHTML = `<i class="fa-solid fa-envelope"></i> <strong>[Código de Confirmação]</strong><br>Código enviado para <strong>${email}</strong>: <span style="color:#d2b378; font-size:16px; font-weight:bold;">${codigo}</span>`;
+            toast.style.display = "block";
 
-        setTimeout(() => {
-            document.getElementById("otp-input").value = codigo;
-        }, 1000);
+            setTimeout(() => {
+                const otpInput = document.getElementById("otp-input");
+                if (otpInput) otpInput.value = codigo;
+            }, 1000);
+        }
     }
 
     function validarCodigoOTP() {
@@ -1033,7 +982,9 @@ function handleCredentialResponse(response) {
             localStorage.setItem("nome_usuario", nomeUsuario);
             localStorage.removeItem("foto_usuario");
 
-            document.getElementById("email-toast").style.display = "none";
+            const toast = document.getElementById("email-toast");
+            if (toast) toast.style.display = "none";
+
             atualizarInterfaceUsuario();
             carregarAgendamentosReais();
             closeProfileModal();
@@ -1044,9 +995,13 @@ function handleCredentialResponse(response) {
     }
 
     function resincronizarFormLogin() {
-        document.getElementById("login-form-container").style.display = "block";
-        document.getElementById("otp-form-container").style.display = "none";
-        document.getElementById("email-toast").style.display = "none";
+        const loginForm = document.getElementById("login-form-container");
+        const otpForm = document.getElementById("otp-form-container");
+        const toast = document.getElementById("email-toast");
+
+        if (loginForm) loginForm.style.display = "block";
+        if (otpForm) otpForm.style.display = "none";
+        if (toast) toast.style.display = "none";
     }
 
     function logout() {
@@ -1063,6 +1018,9 @@ function handleCredentialResponse(response) {
         closeProfileModal();
     }
 
+    // =========================================================================
+    // ATUALIZAÇÃO DE INTERFACE
+    // =========================================================================
     function atualizarInterfaceUsuario() {
         const formContainer = document.getElementById("login-form-container");
         const otpContainer = document.getElementById("otp-form-container");
@@ -1075,39 +1033,53 @@ function handleCredentialResponse(response) {
         const userIconCheck = document.getElementById("user-icon-check");
 
         if (usuarioLogado) {
-            formContainer.style.display = "none";
-            otpContainer.style.display = "none";
-            infoContainer.style.display = "block";
-            
-            userEmailDisplay.innerText = usuarioLogado;
-            userNameDisplay.innerText = nomeUsuario || "Usuário Verificado";
-            
-            avatarIcon.classList.add("verified");
+            if (formContainer) formContainer.style.display = "none";
+            if (otpContainer) otpContainer.style.display = "none";
+            if (infoContainer) infoContainer.style.display = "block";
 
-            if (fotoUsuario) {
-                avatarIcon.style.backgroundImage = `url('${fotoUsuario}')`;
-                avatarFallback.style.display = "none";
-                userAvatarDisplay.style.backgroundImage = `url('${fotoUsuario}')`;
-                userIconCheck.style.display = "none";
-            } else {
-                avatarIcon.style.backgroundImage = "none";
-                avatarFallback.style.display = "block";
-                avatarIcon.style.color = "#d2b378";
-                userAvatarDisplay.style.backgroundImage = "none";
-                userIconCheck.style.display = "block";
+            if (userEmailDisplay) userEmailDisplay.innerText = usuarioLogado;
+            if (userNameDisplay) userNameDisplay.innerText = nomeUsuario || "Usuário Verificado";
+
+            if (avatarIcon) {
+                avatarIcon.classList.add("verified");
+                if (fotoUsuario) {
+                    avatarIcon.style.backgroundImage = `url('${fotoUsuario}')`;
+                    if (avatarFallback) avatarFallback.style.display = "none";
+                } else {
+                    avatarIcon.style.backgroundImage = "none";
+                    if (avatarFallback) avatarFallback.style.display = "block";
+                    avatarIcon.style.color = "#d2b378";
+                }
+            }
+
+            if (userAvatarDisplay) {
+                if (fotoUsuario) {
+                    userAvatarDisplay.style.backgroundImage = `url('${fotoUsuario}')`;
+                    if (userIconCheck) userIconCheck.style.display = "none";
+                } else {
+                    userAvatarDisplay.style.backgroundImage = "none";
+                    if (userIconCheck) userIconCheck.style.display = "block";
+                }
             }
         } else {
             resincronizarFormLogin();
-            infoContainer.style.display = "none";
-            avatarIcon.classList.remove("verified");
-            avatarIcon.style.backgroundImage = "none";
-            avatarFallback.style.display = "block";
-            avatarIcon.style.color = "#6b7280";
+            if (infoContainer) infoContainer.style.display = "none";
+            if (avatarIcon) {
+                avatarIcon.classList.remove("verified");
+                avatarIcon.style.backgroundImage = "none";
+                if (avatarFallback) avatarFallback.style.display = "block";
+                avatarIcon.style.color = "#6b7280";
+            }
         }
     }
 
+    // =========================================================================
+    // GERENCIAMENTO DE AGENDAMENTOS
+    // =========================================================================
     function carregarAgendamentosReais() {
         const container = document.getElementById("appointments-list");
+        if (!container) return;
+
         container.innerHTML = "";
 
         if (!usuarioLogado) {
@@ -1130,13 +1102,14 @@ function handleCredentialResponse(response) {
         }
 
         meusAgendamentos.forEach((ag) => {
+            const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
             container.innerHTML += `
                 <div class="appointment-card">
                     <div class="appointment-info date">
                         <i class="fa-regular fa-circle"></i> <span>${ag.data}, ${ag.horario}</span>
                     </div>
                     <div class="appointment-info service">
-                        <i class="fa-solid fa-store"></i> <span>${ag.servicos.join(", ")}</span>
+                        <i class="fa-solid fa-store"></i> <span>${listaServicos}</span>
                     </div>
                     <div class="appointment-info barber">
                         <i class="fa-solid fa-user"></i> <span>${ag.profissional} (${ag.filial})</span>
@@ -1150,6 +1123,13 @@ function handleCredentialResponse(response) {
         });
     }
 
+    // Função auxiliar necessária para conversão de horários em minutos
+    function converterHorarioParaMinutos(horarioStr) {
+        if (!horarioStr) return 0;
+        const [horas, minutos] = horarioStr.split(':').map(Number);
+        return horas * 60 + minutos;
+    }
+
     function submitBooking() {
         if (!usuarioLogado) {
             alert("Você precisa verificar seu e-mail para agendar!");
@@ -1160,6 +1140,29 @@ function handleCredentialResponse(response) {
             alert("Preencha todos os passos do agendamento!");
             return;
         }
+
+        // =========================================================================
+        // VALIDAÇÃO DE INTERVALO MÍNIMO DE 2 HORAS (120 MINUTOS)
+        // =========================================================================
+        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
+        
+        // Filtra agendamentos do mesmo usuário no mesmo dia
+        const meusAgendamentosNoDia = todosAgendamentos.filter(
+            a => a.usuario === usuarioLogado && a.data === bookingState.data
+        );
+
+        const novoMinutos = converterHorarioParaMinutos(bookingState.horario);
+
+        for (const ag of meusAgendamentosNoDia) {
+            const existenteMinutos = converterHorarioParaMinutos(ag.horario);
+            const diferencaEmMinutos = Math.abs(novoMinutos - existenteMinutos);
+
+            if (diferencaEmMinutos < 120) {
+                alert(`Você já possui um agendamento no dia ${ag.data} às ${ag.horario}.\n\nPara agendar outro horário no mesmo dia, é necessário um intervalo mínimo de 2 horas!`);
+                return;
+            }
+        }
+        // =========================================================================
 
         let valorTotal = 0;
         bookingState.servicos.forEach(nomeServico => {
@@ -1178,9 +1181,19 @@ function handleCredentialResponse(response) {
             total: valorTotal
         };
 
-        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
         todosAgendamentos.push(novoAgendamento);
         localStorage.setItem("agendamentos_barbearia", JSON.stringify(todosAgendamentos));
+
+        // Reset do estado
+        bookingState.profissional = null;
+        bookingState.servicos = [];
+        bookingState.data = null;
+        bookingState.horario = null;
+        bookingState.dayIndex = null;
+
+        document.getElementById("selected-barber-label").innerText = "Selecione um profissional";
+        document.getElementById("selected-services-label").innerText = "Selecione os serviços";
+        document.getElementById("selected-date-label").innerText = "Selecione um horário";
 
         alert("Agendamento efetuado com sucesso!");
         closeBookingModal();
@@ -1196,11 +1209,16 @@ function handleCredentialResponse(response) {
         }
     }
 
+    // =========================================================================
+    // AUXILIARES DE NAVEGAÇÃO E MODAIS
+    // =========================================================================
     function toggleSidebar() {
         const sidebar = document.getElementById("sidebar");
         const overlay = document.getElementById("sidebar-overlay");
-        sidebar.classList.toggle("open");
-        overlay.style.display = sidebar.classList.contains("open") ? "block" : "none";
+        if (sidebar && overlay) {
+            sidebar.classList.toggle("open");
+            overlay.style.display = sidebar.classList.contains("open") ? "block" : "none";
+        }
     }
 
     function openBookingModal() { document.getElementById("booking-modal").classList.add("open"); }
@@ -1212,7 +1230,35 @@ function handleCredentialResponse(response) {
         window.open(UNIDADE_UNICA.linkMaps, "_blank");
     }
 
-    // --- SELEÇÃO DE PASSOS (SEM OPÇÃO DE SELECIONAR FILIAL) ---
+    // =========================================================================
+    // BOTTOM SHEET & ETAPAS DE AGENDAMENTO
+    // =========================================================================
+    function getNext7Days() {
+        const days = [];
+        const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        const today = new Date();
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+
+            const dayIndex = d.getDay();
+            const dayNum = d.getDate().toString().padStart(2, '0');
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const formatted = `${dayNum}/${month}`;
+            const isClosed = (escalaBarbeiros[dayIndex] && escalaBarbeiros[dayIndex].length === 0);
+
+            days.push({
+                dayOfWeek: daysOfWeek[dayIndex],
+                dayNum: dayNum,
+                dayIndex: dayIndex,
+                formatted: formatted,
+                isClosed: isClosed
+            });
+        }
+        return days;
+    }
+
     function openStep(stepName) {
         const sheet = document.getElementById("bottom-sheet");
         const overlay = document.getElementById("sheet-overlay");
@@ -1221,8 +1267,8 @@ function handleCredentialResponse(response) {
 
         if (stepName === 'profissional') {
             contentHTML += `<div class="barber-grid">`;
-            
             let barbeirosDisponiveis = barberData.profissionais;
+
             if (bookingState.dayIndex !== null) {
                 const nomesPermitidos = escalaBarbeiros[bookingState.dayIndex] || [];
                 barbeirosDisponiveis = barberData.profissionais.filter(p => nomesPermitidos.includes(p.nome));
@@ -1234,7 +1280,7 @@ function handleCredentialResponse(response) {
                 barbeirosDisponiveis.forEach(p => {
                     contentHTML += `
                         <div class="barber-card" onclick="selectBarber('${p.nome}')">
-                            <img src="${p.img}" class="barber-img">
+                            <img src="${p.img}" class="barber-img" alt="${p.nome}">
                             <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
                         </div>`;
                 });
@@ -1243,16 +1289,23 @@ function handleCredentialResponse(response) {
         } else if (stepName === 'servicos') {
             barberData.servicos.forEach(s => {
                 const checked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
-                contentHTML += `<div class="service-item"><div><strong>${s.nome}</strong><div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div></div><input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}></div>`;
+                contentHTML += `
+                    <div class="service-item">
+                        <div>
+                            <strong>${s.nome}</strong>
+                            <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
+                        </div>
+                        <input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}>
+                    </div>`;
             });
         } else if (stepName === 'horario') {
             const availableDays = getNext7Days();
             contentHTML += `<div class="date-selector-grid">`;
-            
+
             availableDays.forEach(d => {
                 const selected = bookingState.data === d.formatted;
-                
                 let trabalhaNoDia = true;
+
                 if (bookingState.profissional) {
                     const barbeirosDoDia = escalaBarbeiros[d.dayIndex] || [];
                     trabalhaNoDia = barbeirosDoDia.includes(bookingState.profissional);
@@ -1260,39 +1313,58 @@ function handleCredentialResponse(response) {
 
                 if (d.isClosed) {
                     contentHTML += `
-                        <div class="date-col" style="opacity: 0.4;">
-                            <span class="day-name">${d.dayOfWeek}</span>
-                            <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
-                            <span style="font-size: 9px; color: #ef4444; font-weight: bold;">Fechado</span>
-                        </div>`;
+                    <div class="date-col" style="opacity: 0.4;">
+                        <span class="day-name">${d.dayOfWeek}</span>
+                        <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                        <span style="font-size: 9px; color: #ef4444; font-weight: bold;">Fechado</span>
+                    </div>`;
                 } else if (!trabalhaNoDia) {
                     contentHTML += `
-                        <div class="date-col" style="opacity: 0.4;">
-                            <span class="day-name">${d.dayOfWeek}</span>
-                            <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
-                            <span style="font-size: 9px; color: #6b7280; font-weight: bold;">Folga</span>
-                        </div>`;
+                    <div class="date-col" style="opacity: 0.4;">
+                        <span class="day-name">${d.dayOfWeek}</span>
+                        <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                        <span style="font-size: 9px; color: #6b7280; font-weight: bold;">Folga</span>
+                    </div>`;
                 } else {
                     contentHTML += `
-                        <div class="date-col">
-                            <span class="day-name">${d.dayOfWeek}</span>
-                            <button class="day-number-btn ${selected ? 'selected' : ''}" onclick="selectDate('${d.formatted}', ${d.dayIndex})">${d.dayNum}</button>
-                        </div>`;
+                    <div class="date-col">
+                        <span class="day-name">${d.dayOfWeek}</span>
+                        <button class="day-number-btn ${selected ? 'selected' : ''}" onclick="selectDate('${d.formatted}', ${d.dayIndex})">${d.dayNum}</button>
+                    </div>`;
                 }
             });
 
             contentHTML += `</div><div class="time-grid">`;
             if (bookingState.data) {
+                // Busca agendamentos prévios do cliente na data selecionada
+                const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
+                const meusAgendamentosNoDia = todosAgendamentos.filter(
+                    a => a.usuario === usuarioLogado && a.data === bookingState.data
+                );
+
                 barberData.horarios.forEach(h => {
+                    const hMinutos = converterHorarioParaMinutos(h);
+                    const conflito2Horas = meusAgendamentosNoDia.some(ag => {
+                        const agMinutos = converterHorarioParaMinutos(ag.horario);
+                        return Math.abs(hMinutos - agMinutos) < 120;
+                    });
+
                     const selected = bookingState.horario === h;
-                    contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
+
+                    if (conflito2Horas) {
+                        // Desabilita visualmente o botão do horário
+                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Intervalo mínimo de 2h entre cortes">${h}</button>`;
+                    } else {
+                        contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
+                    }
                 });
             } else {
                 contentHTML += `<p style="font-size: 13px; color: #6b7280;">Selecione um dia acima para ver os horários.</p>`;
-            }
+            }   
             contentHTML += `</div>`;
         }
 
+        // Exibe o conteúdo na gaveta (bottom-sheet) e abre no navegador
         body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
         sheet.classList.add("open");
         overlay.style.display = "block";
@@ -1303,71 +1375,37 @@ function handleCredentialResponse(response) {
         document.getElementById("sheet-overlay").style.display = "none";
     }
 
-    function selectBarber(nome) { bookingState.profissional = nome; document.getElementById("selected-barber-label").innerText = nome; closeSheet(); }
-    
+    function selectBarber(nome) {
+        bookingState.profissional = nome;
+        document.getElementById("selected-barber-label").innerText = nome;
+        closeSheet();
+    }
+
     function toggleService(nome) {
         const index = bookingState.servicos.indexOf(nome);
-        if (index > -1) bookingState.servicos.splice(index, 1);
-        else bookingState.servicos.push(nome);
-        document.getElementById("selected-services-label").innerText = bookingState.servicos.length > 0 ? bookingState.servicos.join(", ") : "Selecione os serviços";
+        if (index > -1) {
+            bookingState.servicos.splice(index, 1);
+        } else {
+            bookingState.servicos.push(nome);
+        }
+
+        const label = document.getElementById("selected-services-label");
+        if (label) {
+            label.innerText = bookingState.servicos.length > 0 ? bookingState.servicos.join(", ") : "Selecione os serviços";
+        }
     }
 
-    function selectDate(formattedDate, dayIndex) { 
-        bookingState.data = formattedDate; 
+    function selectDate(formattedDate, dayIndex) {
+        bookingState.data = formattedDate;
         bookingState.dayIndex = dayIndex;
-        openStep('horario'); 
+        openStep('horario');
     }
 
-    function selectHorario(h) { 
-        bookingState.horario = h; 
-        document.getElementById("selected-date-label").innerText = `${bookingState.data} às ${h}`; 
-        openStep('horario'); 
+    function selectHorario(h) {
+        bookingState.horario = h;
+        document.getElementById("selected-date-label").innerText = `${bookingState.data} às ${h}`;
+        openStep('horario');
     }
-  window.onload = function () {
-    // 1. Inicializa o Google Identity Services
-    google.accounts.id.initialize({
-      client_id: "22163531311-2jn8s94c8ae6gnod12ggbrtki21uecql.apps.googleusercontent.com",
-      callback: handleCredentialResponse,
-      auto_select: true
-    });
-
-    // 2. Desenha o botão dentro da div googleBtnWrapper (linha 747)
-    google.accounts.id.renderButton(
-      document.getElementById("googleBtnWrapper"),
-      { theme: "outline", size: "large", width: "100%", text: "continue_with" }
-    );
-
-    // 3. Ativa o pop-up automático One Tap
-    google.accounts.id.prompt();
-  };
-
-  // 4. Guarda a sessão do cliente
-  function handleCredentialResponse(response) {
-    const dadosUtilizador = parseJwt(response.credential);
-
-    const usuario = {
-      nome: dadosUtilizador.name,
-      email: dadosUtilizador.email,
-      foto: dadosUtilizador.picture,
-      logado: true
-    };
-
-    localStorage.setItem('usuarioBarbearia', JSON.stringify(usuario));
-
-    alert(`Bem-vindo(a), ${usuario.nome}!`);
-    location.reload();
-  }
-
-  // 5. Descodifica os dados do Google
-  function parseJwt(token) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    return JSON.parse(jsonPayload);
-  }
 </script>
 </body>
 </html>

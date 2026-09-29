@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel dos Barbeiros - Lerinho Costa</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: #121212; color: #f5f5f5; padding: 15px; }
+        header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #d2b378; }
+        h1 { color: #d2b378; font-size: 22px; }
+        p.sub { font-size: 13px; color: #aaa; margin-top: 4px; }
+        
+        .filters { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .filter-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+        .filter-btn.active { background: #d2b378; color: #121212; font-weight: bold; border-color: #d2b378; }
+
+        .agendamento-card { background: #1e1e1e; border-left: 5px solid #d2b378; border-radius: 8px; padding: 14px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .agendamento-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .hora { font-size: 18px; font-weight: bold; color: #d2b378; }
+        .data { font-size: 12px; background: #333; padding: 3px 8px; border-radius: 4px; color: #ddd; }
+        .cliente { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+        .barbeiro { font-size: 13px; color: #bbb; margin-bottom: 4px; }
+        .servicos { font-size: 13px; color: #aaa; background: #181818; padding: 6px; border-radius: 4px; margin-top: 6px; }
+        .empty-state { text-align: center; color: #888; padding: 40px 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Barbearia Lerinho Costa</h1>
+        <p class="sub">Painel de Agendamentos em Tempo Real</p>
+    </header>
+
+    <div class="filters">
+        <button class="filter-btn active" onclick="filtrar('Todos', this)">Todos</button>
+        <button class="filter-btn" onclick="filtrar('Lerinho Costa', this)">Lerinho</button>
+        <button class="filter-btn" onclick="filtrar('Luan Cezar', this)">Luan</button>
+        <button class="filter-btn" onclick="filtrar('Gabriel', this)">Gabriel</button>
+    </div>
+
+    <div id="listaAgendamentos">
+        <div class="empty-state">A carregar agendamentos...</div>
+    </div>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBLgnDDImGXkkjTd7Z5Fwm2yIkDTF5hJWU",
+        authDomain: "barbearia-lerinho-costa-5e12f.firebaseapp.com",
+        projectId: "barbearia-lerinho-costa-5e12f",
+        storageBucket: "barbearia-lerinho-costa-5e12f.firebasestorage.app",
+        messagingSenderId: "833448961588",
+        appId: "1:833448961588:web:126db05be2e01890168c61"
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      let todosAgendamentos = [];
+      let filtroAtual = 'Todos';
+
+      // Sincronização em tempo real com o Firestore
+      db.collection("agendamentos").orderBy("criadoEm", "desc").onSnapshot((snapshot) => {
+        todosAgendamentos = [];
+        snapshot.forEach((doc) => {
+          todosAgendamentos.push({ id: doc.id, ...doc.data() });
+        });
+        renderizar();
+      });
+
+      function renderizar() {
+        const container = document.getElementById("listaAgendamentos");
+        container.innerHTML = "";
+
+        const listaFiltrada = filtroAtual === 'Todos' 
+          ? todosAgendamentos 
+          : todosAgendamentos.filter(a => a.profissional === filtroAtual);
+
+        if (listaFiltrada.length === 0) {
+          container.innerHTML = '<div class="empty-state">Nenhum agendamento encontrado.</div>';
+          return;
+        }
+
+        listaFiltrada.forEach(ag => {
+          const servicosTexto = Array.isArray(ag.servicos) ? ag.servicos.join(', ') : ag.servicos;
+          
+          container.innerHTML += `
+            <div class="agendamento-card">
+                <div class="agendamento-header">
+                    <span class="hora">⏰ ${ag.horario}</span>
+                    <span class="data">📅 ${ag.data}</span>
+                </div>
+                <div class="cliente">👤 ${ag.nomeCliente || ag.usuario}</div>
+                <div class="barbeiro">✂️ Barbeiro: <strong>${ag.profissional}</strong></div>
+                <div class="servicos">💈 ${servicosTexto}</div>
+            </div>
+          `;
+        });
+      }
+
+      function filtrar(barbeiro, btn) {
+        filtroAtual = barbeiro;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderizar();
+      }
+    </script>
+</body>
+</html>
