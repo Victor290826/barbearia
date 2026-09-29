@@ -653,7 +653,7 @@
         </section>
 
         <!-- Banner de Suporte / WhatsApp -->
-        <a href="https://wa.me/55DDDSEUNUMERO" target="_blank" style="text-decoration: none; display: block; margin: 16px 0;">
+        <a href="https://wa.me/5581997800371" target="_blank" style="text-decoration: none; display: block; margin: 16px 0;">
         <div style="background-color: #25D366; color: #ffffff; padding: 18px 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);">
             <div>
                 <strong style="display: block; font-size: 1rem; margin-bottom: 4px;">Precisa de ajuda ou remarcar?</strong>
@@ -942,28 +942,28 @@ function closeVantagensModal() {
     }
 }
 
-   function handleCredentialResponse(response) {
+function handleCredentialResponse(response) {
   const dadosUtilizador = parseJwt(response.credential);
 
-  // 1. Atualiza as variáveis globais em memória
+  // 1. Atualiza as variáveis globais na memória do JavaScript
   usuarioLogado = dadosUtilizador.email;
   nomeUsuario = dadosUtilizador.name;
   fotoUsuario = dadosUtilizador.picture;
 
-  // 2. Guarda no localStorage com os nomes exatos utilizados nas linhas 818-820
+  // 2. Guarda no localStorage com os nomes exatos das linhas 818-820
   localStorage.setItem("usuario_logado", dadosUtilizador.email);
   localStorage.setItem("nome_usuario", dadosUtilizador.name);
   localStorage.setItem("foto_usuario", dadosUtilizador.picture);
 
   alert(`Bem-vindo(a), ${dadosUtilizador.name}!`);
 
-  // 3. Fecha a janela de login para prosseguir com o agendamento
+  // 3. Fecha o modal de login para poderes agendar
   if (typeof closeProfileModal === 'function') {
     closeProfileModal();
   } else {
     location.reload();
   }
-}  
+}   
 
     function parseJwt(token) {
         try {
