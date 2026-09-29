@@ -1,113 +1,153 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel dos Barbeiros - Lerinho Costa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel dos Barbeiros</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background-color: #121212; color: #fff; margin: 0; padding: 15px; }
+    .container { max-width: 500px; margin: 0 auto; }
+    h1 { text-align: center; color: #d2b378; font-size: 22px; margin-bottom: 20px; }
     
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: #121212; color: #f5f5f5; padding: 15px; }
-        header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #d2b378; }
-        h1 { color: #d2b378; font-size: 22px; }
-        p.sub { font-size: 13px; color: #aaa; margin-top: 4px; }
-        
-        .filters { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .filter-btn { background: #222; border: 1px solid #444; color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; }
-        .filter-btn.active { background: #d2b378; color: #121212; font-weight: bold; border-color: #d2b378; }
-
-        .agendamento-card { background: #1e1e1e; border-left: 5px solid #d2b378; border-radius: 8px; padding: 14px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .agendamento-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .hora { font-size: 18px; font-weight: bold; color: #d2b378; }
-        .data { font-size: 12px; background: #333; padding: 3px 8px; border-radius: 4px; color: #ddd; }
-        .cliente { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #fff; }
-        .barbeiro { font-size: 13px; color: #bbb; margin-bottom: 4px; }
-        .servicos { font-size: 13px; color: #aaa; background: #181818; padding: 6px; border-radius: 4px; margin-top: 6px; }
-        .empty-state { text-align: center; color: #888; padding: 40px 10px; }
-    </style>
+    .filter-card { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+    .filter-group { margin-bottom: 12px; }
+    .filter-group:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; font-weight: bold; }
+    select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 15px; }
+    
+    .card { background: #1e1e1e; border-left: 5px solid #d2b378; border-radius: 6px; padding: 15px; margin-bottom: 12px; }
+    .card.concluido { border-left-color: #22c55e; opacity: 0.6; }
+    .card.cancelado { border-left-color: #ef4444; opacity: 0.4; }
+    
+    .card-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #d2b378; }
+    .card-body p { margin: 4px 0; font-size: 13px; color: #ccc; }
+    
+    .actions { margin-top: 12px; display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+    .btn-success { background: #22c55e; color: #fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .empty-msg { text-align: center; color: #777; margin-top: 30px; font-size: 14px; }
+  </style>
 </head>
 <body>
 
-    <header>
-        <h1>Barbearia Lerinho Costa</h1>
-        <p class="sub">Painel de Agendamentos em Tempo Real</p>
-    </header>
+  <div class="container">
+    <h1><i class="fa-solid fa-scissors"></i> Agenda do Barbeiro</h1>
 
-    <div class="filters">
-        <button class="filter-btn active" onclick="filtrar('Todos', this)">Todos</button>
-        <button class="filter-btn" onclick="filtrar('Lerinho Costa', this)">Lerinho</button>
-        <button class="filter-btn" onclick="filtrar('Luan Cezar', this)">Luan</button>
-        <button class="filter-btn" onclick="filtrar('Gabriel', this)">Gabriel</button>
+    <div class="filter-card">
+      <div class="filter-group">
+        <label for="selectBarbeiro">SELECIONE O SEU NOME:</label>
+        <select id="selectBarbeiro" onchange="carregarAgendamentos()">
+          <option value="Lerinho Costa">Lerinho Costa</option>
+          <option value="Luan Cezar">Luan Cezar</option>
+          <option value="Gabriel">Gabriel</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="selectData">DATA:</label>
+        <input type="date" id="selectData" onchange="carregarAgendamentos()">
+      </div>
     </div>
 
-    <div id="listaAgendamentos">
-        <div class="empty-state">A carregar agendamentos...</div>
-    </div>
+    <!-- Lista dos cortes agendados -->
+    <div id="lista-agendamentos"></div>
+  </div>
 
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyBLgnDDImGXkkjTd7Z5Fwm2yIkDTF5hJWU",
-        authDomain: "barbearia-lerinho-costa-5e12f.firebaseapp.com",
-        projectId: "barbearia-lerinho-costa-5e12f",
-        storageBucket: "barbearia-lerinho-costa-5e12f.firebasestorage.app",
-        messagingSenderId: "833448961588",
-        appId: "1:833448961588:web:126db05be2e01890168c61"
-      };
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+  <script>
+    // ⚠️ COLOQUE SUAS CHAVES DO FIREBASE AQUI
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJETO.firebaseapp.com",
+      projectId: "SEU_PROJETO_ID",
+      storageBucket: "SEU_PROJETO.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
 
-      let todosAgendamentos = [];
-      let filtroAtual = 'Todos';
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-      // Sincronização em tempo real com o Firestore
-      db.collection("agendamentos").orderBy("criadoEm", "desc").onSnapshot((snapshot) => {
-        todosAgendamentos = [];
-        snapshot.forEach((doc) => {
-          todosAgendamentos.push({ id: doc.id, ...doc.data() });
-        });
-        renderizar();
-      });
+    // Define a data atual por padrão
+    document.getElementById("selectData").valueAsDate = new Date();
 
-      function renderizar() {
-        const container = document.getElementById("listaAgendamentos");
-        container.innerHTML = "";
+    let unsubscribe = null;
 
-        const listaFiltrada = filtroAtual === 'Todos' 
-          ? todosAgendamentos 
-          : todosAgendamentos.filter(a => a.profissional === filtroAtual);
+    function carregarAgendamentos() {
+      const barbeiro = document.getElementById("selectBarbeiro").value;
+      const dataInput = document.getElementById("selectData").value; // Ex: "2026-09-29"
+      const container = document.getElementById("lista-agendamentos");
 
-        if (listaFiltrada.length === 0) {
-          container.innerHTML = '<div class="empty-state">Nenhum agendamento encontrado.</div>';
-          return;
-        }
+      if (!dataInput) return;
 
-        listaFiltrada.forEach(ag => {
-          const servicosTexto = Array.isArray(ag.servicos) ? ag.servicos.join(', ') : ag.servicos;
-          
-          container.innerHTML += `
-            <div class="agendamento-card">
-                <div class="agendamento-header">
-                    <span class="hora">⏰ ${ag.horario}</span>
-                    <span class="data">📅 ${ag.data}</span>
+      // Converte data "YYYY-MM-DD" para "DD/MM" (formato que está no seu código do cliente)
+      const [ano, mes, dia] = dataInput.split("-");
+      const dataFormatada = `${dia}/${mes}`;
+
+      container.innerHTML = "<p class='empty-msg'>Buscando agendamentos...</p>";
+
+      if (unsubscribe) unsubscribe(); // Cancela o ouvinte anterior para economizar dados
+
+      // Escuta os cortes em tempo real no Firestore
+      unsubscribe = db.collection("agendamentos")
+        .where("profissional", "==", barbeiro)
+        .where("data", "==", dataFormatada)
+        .onSnapshot((snapshot) => {
+          container.innerHTML = "";
+
+          if (snapshot.empty) {
+            container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataFormatada}.</div>`;
+            return;
+          }
+
+          snapshot.forEach((doc) => {
+            const ag = doc.data();
+            const idDoc = doc.id;
+            const status = ag.status || "Pendente";
+            const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+
+            let cardClass = "card";
+            if (status === "Concluído") cardClass += " concluido";
+            if (status === "Cancelado") cardClass += " cancelado";
+
+            container.innerHTML += `
+              <div class="${cardClass}">
+                <div class="card-header">
+                  <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
+                  <span>R$ ${ag.total ? ag.total.toFixed(2) : '0.00'}</span>
                 </div>
-                <div class="cliente">👤 ${ag.nomeCliente || ag.usuario}</div>
-                <div class="barbeiro">✂️ Barbeiro: <strong>${ag.profissional}</strong></div>
-                <div class="servicos">💈 ${servicosTexto}</div>
-            </div>
-          `;
+                <div class="card-body">
+                  <p><strong>Cliente:</strong> ${ag.usuario}</p>
+                  <p><strong>Serviços:</strong> ${servicos}</p>
+                  <p><strong>Status:</strong> ${status}</p>
+                </div>
+                <div class="actions">
+                  ${status !== "Concluído" ? `<button class="btn btn-success" onclick="alterarStatus('${idDoc}', 'Concluído')">Concluir</button>` : ''}
+                  ${status !== "Cancelado" ? `<button class="btn btn-danger" onclick="alterarStatus('${idDoc}', 'Cancelado')">Cancelar</button>` : ''}
+                </div>
+              </div>
+            `;
+          });
+        }, (error) => {
+          console.error("Erro ao buscar agendamentos: ", error);
+          container.innerHTML = "<p class='empty-msg' style='color:#ef4444;'>Erro ao carregar do Firebase.</p>";
         });
-      }
+    }
 
-      function filtrar(barbeiro, btn) {
-        filtroAtual = barbeiro;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderizar();
-      }
-    </script>
+    function alterarStatus(idDoc, novoStatus) {
+      db.collection("agendamentos").doc(idDoc).update({
+        status: novoStatus
+      }).catch(err => alert("Erro ao atualizar status: " + err.message));
+    }
+
+    // Carrega a lista automaticamente ao abrir a página
+    carregarAgendamentos();
+  </script>
 </body>
 </html>
