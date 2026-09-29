@@ -1077,51 +1077,70 @@
     // GERENCIAMENTO DE AGENDAMENTOS
     // =========================================================================
     function carregarAgendamentosReais() {
-        const container = document.getElementById("appointments-list");
-        if (!container) return;
+    const container = document.getElementById("appointments-list");
+    if (!container) return;
 
-        container.innerHTML = "";
+    container.innerHTML = "";
 
-        if (!usuarioLogado) {
-            container.innerHTML = `
-                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
-                    Faça login com seu e-mail verificado para ver e realizar agendamentos.
-                </div>`;
-            return;
-        }
+    if (!usuarioLogado) {
+        container.innerHTML = `
+            <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
+                Faça login com seu e-mail verificado para ver e realizar agendamentos.
+            </div>`;
+        return;
+    }
 
-        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
-        const meusAgendamentos = todosAgendamentos.filter(a => a.usuario === usuarioLogado);
+    db.collection("agendamentos")
+        .where("usuario", "==", usuarioLogado)
+        .onSnapshot((snapshot) => {
+            container.innerHTML = "";
 
-        if (meusAgendamentos.length === 0) {
-            container.innerHTML = `
-                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
-                    Você ainda não possui agendamentos.
-                </div>`;
-            return;
-        }
+            if (snapshot.empty) {
+                container.innerHTML = `
+                    <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
+                        Você ainda não possui agendamentos.
+                    </div>`;
+                return;
+            }
 
-        meusAgendamentos.forEach((ag) => {
-            const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
-            container.innerHTML += `
-                <div class="appointment-card">
-                    <div class="appointment-info date">
-                        <i class="fa-regular fa-circle"></i> <span>${ag.data}, ${ag.horario}</span>
+            snapshot.forEach((doc) => {
+                const ag = doc.data();
+                const idDoc = doc.id;
+                const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                const status = ag.status || "Pendente";
+
+                container.innerHTML += `
+                    <div class="appointment-card">
+                        <div class="appointment-info date">
+                            <i class="fa-regular fa-circle"></i> <span>${ag.data}, ${ag.horario}</span>
+                        </div>
+                        <div class="appointment-info service">
+                            <i class="fa-solid fa-store"></i> <span>${listaServicos}</span>
+                        </div>
+                        <div class="appointment-info barber">
+                            <i class="fa-solid fa-user"></i> <span>${ag.profissional} (${ag.filial}) - <strong style="color:#d2b378;">${status}</strong></span>
+                        </div>
+                        <div class="appointment-total">
+                            <span>Total: R$ ${ag.total ? ag.total.toFixed(2) : '0.00'}</span>
+                            ${status !== 'Cancelado' ? `<button class="btn-cancel" onclick="cancelarAgendamento('${idDoc}')">Cancelar</button>` : ''}
+                        </div>
                     </div>
-                    <div class="appointment-info service">
-                        <i class="fa-solid fa-store"></i> <span>${listaServicos}</span>
-                    </div>
-                    <div class="appointment-info barber">
-                        <i class="fa-solid fa-user"></i> <span>${ag.profissional} (${ag.filial})</span>
-                    </div>
-                    <div class="appointment-total">
-                        <span>Total: R$ ${ag.total.toFixed(2)}</span>
-                        <button class="btn-cancel" onclick="cancelarAgendamento(${ag.id})">Cancelar</button>
-                    </div>
-                </div>
-            `;
+                `;
+            });
+        });
+}
+
+function cancelarAgendamento(idDoc) {
+    if (confirm("Deseja realmente cancelar este agendamento?")) {
+        db.collection("agendamentos").doc(idDoc).update({
+            status: "Cancelado"
+        }).then(() => {
+            alert("Agendamento cancelado!");
+        }).catch(err => {
+            alert("Erro ao cancelar: " + err.message);
         });
     }
+}
 
     // Função auxiliar necessária para conversão de horários em minutos
     function converterHorarioParaMinutos(horarioStr) {
@@ -1130,30 +1149,34 @@
         return horas * 60 + minutos;
     }
 
-    function submitBooking() {
-        if (!usuarioLogado) {
-            alert("Você precisa verificar seu e-mail para agendar!");
-            openProfileModal();
-            return;
-        }
-        if (!bookingState.profissional || bookingState.servicos.length === 0 || !bookingState.data || !bookingState.horario) {
-            alert("Preencha todos os passos do agendamento!");
-            return;
-        }
+    async function submitBooking() {
+    if (!usuarioLogado) {
+        alert("Você precisa verificar seu e-mail para agendar!");
+        openProfileModal();
+        return;
+    }
+    if (!bookingState.profissional || bookingState.servicos.length === 0 || !bookingState.data || !bookingState.horario) {
+        alert("Preencha todos os passos do agendamento!");
+        return;
+    }
 
+    try {
         // =========================================================================
-        // VALIDAÇÃO DE INTERVALO MÍNIMO DE 2 HORAS (120 MINUTOS)
+        // VALIDAÇÃO DE INTERVALO MÍNIMO DE 2 HORAS (120 MINUTOS) NO FIREBASE
         // =========================================================================
-        const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
-        
-        // Filtra agendamentos do mesmo usuário no mesmo dia
-        const meusAgendamentosNoDia = todosAgendamentos.filter(
-            a => a.usuario === usuarioLogado && a.data === bookingState.data
-        );
+        const snapshot = await db.collection("agendamentos")
+            .where("usuario", "==", usuarioLogado)
+            .where("data", "==", bookingState.data)
+            .get();
 
         const novoMinutos = converterHorarioParaMinutos(bookingState.horario);
 
-        for (const ag of meusAgendamentosNoDia) {
+        for (const doc of snapshot.docs) {
+            const ag = doc.data();
+            
+            // Ignora agendamentos cancelados na validação
+            if (ag.status === "Cancelado") continue;
+
             const existenteMinutos = converterHorarioParaMinutos(ag.horario);
             const diferencaEmMinutos = Math.abs(novoMinutos - existenteMinutos);
 
@@ -1171,18 +1194,19 @@
         });
 
         const novoAgendamento = {
-            id: Date.now(),
             usuario: usuarioLogado,
             filial: bookingState.filial,
             profissional: bookingState.profissional,
             servicos: [...bookingState.servicos],
             data: bookingState.data,
             horario: bookingState.horario,
-            total: valorTotal
+            total: valorTotal,
+            status: "Pendente",
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        todosAgendamentos.push(novoAgendamento);
-        localStorage.setItem("agendamentos_barbearia", JSON.stringify(todosAgendamentos));
+        // Salva diretamente no Firestore
+        await db.collection("agendamentos").add(novoAgendamento);
 
         // Reset do estado
         bookingState.profissional = null;
@@ -1191,23 +1215,23 @@
         bookingState.horario = null;
         bookingState.dayIndex = null;
 
-        document.getElementById("selected-barber-label").innerText = "Selecione um profissional";
-        document.getElementById("selected-services-label").innerText = "Selecione os serviços";
-        document.getElementById("selected-date-label").innerText = "Selecione um horário";
+        const labelBarber = document.getElementById("selected-barber-label");
+        const labelServices = document.getElementById("selected-services-label");
+        const labelDate = document.getElementById("selected-date-label");
+
+        if (labelBarber) labelBarber.innerText = "Selecione um profissional";
+        if (labelServices) labelServices.innerText = "Selecione os serviços";
+        if (labelDate) labelDate.innerText = "Selecione um horário";
 
         alert("Agendamento efetuado com sucesso!");
         closeBookingModal();
         carregarAgendamentosReais();
-    }
 
-    function cancelarAgendamento(id) {
-        if (confirm("Deseja realmente cancelar este agendamento?")) {
-            let todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
-            todosAgendamentos = todosAgendamentos.filter(a => a.id !== id);
-            localStorage.setItem("agendamentos_barbearia", JSON.stringify(todosAgendamentos));
-            carregarAgendamentosReais();
-        }
+    } catch (error) {
+        console.error("Erro ao salvar agendamento no Firebase: ", error);
+        alert("Ocorreu um erro ao realizar o agendamento. Tente novamente.");
     }
+}
 
     // =========================================================================
     // AUXILIARES DE NAVEGAÇÃO E MODAIS
