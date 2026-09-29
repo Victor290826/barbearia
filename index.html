@@ -945,25 +945,29 @@ function closeVantagensModal() {
 function handleCredentialResponse(response) {
   const dadosUtilizador = parseJwt(response.credential);
 
-  // 1. Atualiza as variáveis globais na memória do JavaScript
+  // 1. Define as variáveis globais que o site utiliza
   usuarioLogado = dadosUtilizador.email;
   nomeUsuario = dadosUtilizador.name;
   fotoUsuario = dadosUtilizador.picture;
 
-  // 2. Guarda no localStorage com os nomes exatos das linhas 818-820
+  // 2. Guarda no localStorage
   localStorage.setItem("usuario_logado", dadosUtilizador.email);
   localStorage.setItem("nome_usuario", dadosUtilizador.name);
   localStorage.setItem("foto_usuario", dadosUtilizador.picture);
 
-  alert(`Bem-vindo(a), ${dadosUtilizador.name}!`);
+  // 3. Se existir um elemento no HTML para mostrar o nome/e-mail do utilizador no topo, atualiza-o
+  const displayEmail = document.getElementById("userEmailDisplay");
+  if (displayEmail) {
+    displayEmail.textContent = dadosUtilizador.email;
+  }
 
-  // 3. Fecha o modal de login para poderes agendar
+  // 4. Fecha apenas a janela (modal) de login SEM recarregar a página
   if (typeof closeProfileModal === 'function') {
     closeProfileModal();
-  } else {
-    location.reload();
   }
-}   
+
+  alert(`Login efetuado com sucesso! Bem-vindo(a), ${dadosUtilizador.name}`);
+}
 
     function parseJwt(token) {
         try {
