@@ -1009,34 +1009,36 @@
     
     let servicosSelecionados = [];
 
-    // Função que renderiza a aba dentro do #sheet-body
     function renderizarAbaServicos() {
-        const sheetBody = document.getElementById("sheet-body");
-        if (!sheetBody) return;
+    const sheetBody = document.getElementById("sheet-body");
+    if (!sheetBody) return;
 
-        let html = `
-            <h3 style="text-align: center; font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">
-                Selecione os serviços
-            </h3>
-            <div class="services-container">
-        `;
+    let html = `
+        <h3 style="text-align: center; font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">
+            Selecione os serviços
+        </h3>
+        <div class="services-container">
+    `;
 
+    if (barberData && barberData.servicos) {
         barberData.servicos.forEach(s => {
-            const estaSelecionado = servicosSelecionados.some(item => item.id === s.id);
+            const estaSelecionado = servicosSelecionados.some(item => item.id == s.id);
+            const precoFormatado = Number(s.preco || 0).toFixed(2).replace('.', ',');
+            const precoAntigoFormatado = s.precoAntigo ? Number(s.precoAntigo).toFixed(2).replace('.', ',') : null;
 
             html += `
-                <div class="service-card ${estaSelecionado ? 'selected' : ''}" onclick="alternarServico(${s.id})">
+                <div class="service-card ${estaSelecionado ? 'selected' : ''}" onclick="alternarServico('${s.id}')">
                     ${s.emAlta ? `
                         <div class="service-badge">
-                            <i class="fa-solid fa-droplet"></i> Em alta
+                            <i class="fa-solid fa-fire"></i> Em alta
                         </div>
                     ` : ''}
 
                     <div class="service-info">
                         <span class="service-title">${s.nome}</span>
                         <div class="service-prices">
-                            <span class="price-current">R$ ${s.preco.toFixed(2).replace('.', ',')}</span>
-                            ${s.precoAntigo ? `<span class="price-old">R$ ${s.precoAntigo.toFixed(2).replace('.', ',')}</span>` : ''}
+                            <span class="price-current">R$ ${precoFormatado}</span>
+                            ${precoAntigoFormatado ? `<span class="price-old">R$ ${precoAntigoFormatado}</span>` : ''}
                         </div>
                     </div>
 
@@ -1046,10 +1048,187 @@
                 </div>
             `;
         });
-
-        html += `</div>`;
-        sheetBody.innerHTML = html;
     }
+
+    html += `</div>`;
+    sheetBody.innerHTML = html;
+}
+
+function carregarAgendamentosReais() {
+    const containerHome = document.getElementById("appointments-list");
+    const containerModal = document.getElementById("full-appointments-list");
+
+    if (!containerHome && !containerModal) return;
+
+    if (!usuarioLogado) {
+        const mensagemLogin = `
+            <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                Faça login para ver os seus agendamentos.
+            </div>`;
+        if (containerHome) containerHome.innerHTML = mensagemLogin;
+        if (containerModal) containerModal.innerHTML = mensagemLogin;
+        return;
+    }
+
+    db.collection("agendamentos")
+        .where("usuario", "==", usuarioLogado)
+        .onSnapshot((snapshot) => {
+            if (containerHome) containerHome.innerHTML = "";
+            if (containerModal) containerModal.innerHTML = "";
+
+            if (snapshot.empty) {
+                const mensagemVazio = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+                if (containerHome) containerHome.innerHTML = mensagemVazio;
+                if (containerModal) containerModal.innerHTML = mensagemVazio;
+                return;
+            }
+
+            let temProximosHome = false;
+            let temHistoricoModal = false;
+
+            snapshot.forEach((doc) => {
+                const ag = doc.data();
+                const idDoc = doc.id;
+                const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                let status = ag.status || "Pendente";
+
+                let jaPassou = false;
+                if (ag.data && ag.horario) {
+                    const agora = new Date();
+                    const partesData = ag.data.split('/');
+                    const dia = parseInt(partesData[0], 10);
+                    const mes = parseInt(partesData[1], 10) - 1;
+                    const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
+
+                    const partesHora = ag.horario.split(':');
+                    const hora = parseInt(partesHora[0], 10);
+                    const min = parseInt(partesHora[1], 10);
+
+                    const dataAgendamento = new Date(ano, mes, dia, hora, min);
+                    jaPassou = dataAgendamento < agora;
+                }
+
+                const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
+                const totalFormatado = ag.total ? Number(ag.total).toFixed(2).replace('.', ',') : '0,00';
+
+                const cardHTML = `
+                    <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                            📅 ${ag.data} - ${ag.horario}
+                        </div>
+                        <div style="font-size: 13px; color: #4b5563;">
+                            ✂ ${listaServicos}
+                        </div>
+                        <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
+                            👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
+                        </div>
+                        ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${totalFormatado}</div>` : ''}
+                    </div>
+                `;
+
+                // Tela Inicial: Exibe apenas agendamentos futuros e ativos
+                if (containerHome && !jaPassou && !statusFinalizado) {
+                    containerHome.innerHTML += cardHTML;
+                    temProximosHome = true;
+                }
+
+                // Modal: Histórico completo
+                if (containerModal) {
+                    containerModal.innerHTML += cardHTML;
+                    temHistoricoModal = true;
+                }
+            });
+
+            if (containerHome && !temProximosHome) {
+                containerHome.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Você não possui próximos agendamentos.
+                    </div>`;
+            }
+
+            if (containerModal && !temHistoricoModal) {
+                containerModal.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+            }
+        });
+}
+
+function carregarAgendamentos() {
+    const barbeiroSelect = document.getElementById("selectBarbeiro");
+    const dataInput = document.getElementById("selectData") ? document.getElementById("selectData").value : null;
+    const container = document.getElementById("lista-agendamentos");
+
+    if (!barbeiroSelect || !dataInput || !container) return;
+
+    const barbeiro = barbeiroSelect.value;
+
+    // Converte data "YYYY-MM-DD" para "DD/MM"
+    const [ano, mes, dia] = dataInput.split("-");
+    const dataFormatada = `${dia}/${mes}`;
+
+    container.innerHTML = "<p class='empty-msg'>Buscando agendamentos...</p>";
+
+    if (typeof unsubscribe !== 'undefined' && unsubscribe) unsubscribe();
+
+    // Escuta os agendamentos em tempo real no Firestore
+    unsubscribe = db.collection("agendamentos")
+        .where("profissional", "==", barbeiro)
+        .where("data", "==", dataFormatada)
+        .onSnapshot((snapshot) => {
+            container.innerHTML = "";
+
+            if (snapshot.empty) {
+                container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataFormatada}.</div>`;
+                return;
+            }
+
+            snapshot.forEach((doc) => {
+                const ag = doc.data();
+                const idDoc = doc.id;
+                const status = ag.status || "Pendente";
+                const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+
+                const telOriginal = ag.telefone || "Não informado";
+                const telApenasNumeros = telOriginal.replace(/\D/g, "");
+                const linkWhatsapp = telApenasNumeros 
+                    ? `https://wa.me/55${telApenasNumeros}?text=Olá!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
+                    : "#";
+
+                let cardClass = "card";
+                if (status === "Concluído") cardClass += " concluido";
+                if (status === "Cancelado") cardClass += " cancelado";
+
+                const totalFormatado = ag.total ? Number(ag.total).toFixed(2).replace('.', ',') : '0,00';
+
+                container.innerHTML += `
+                    <div class="${cardClass}">
+                        <div class="card-header">
+                            <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
+                            <span>R$ ${totalFormatado}</span>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Cliente:</strong> ${ag.usuario}</p>
+                            <p><strong>Contato:</strong> ${telOriginal} ${telApenasNumeros ? `<a href="${linkWhatsapp}" target="_blank" style="color: #25D366; font-weight: bold; margin-left: 8px; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}</p>
+                            <p><strong>Serviços:</strong> ${servicos}</p>
+                            <p><strong>Status:</strong> ${status}</p>
+                        </div>
+                        <div class="actions">
+                            ${status !== "Concluído" ? `<button class="btn btn-success" onclick="alterarStatus('${idDoc}', 'Concluído')">Concluir</button>` : ''}
+                            ${status !== "Cancelado" ? `<button class="btn btn-danger" onclick="alterarStatus('${idDoc}', 'Cancelado')">Cancelar</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }, (error) => {
+            console.error("Erro ao buscar agendamentos: ", error);
+            container.innerHTML = "<p class='empty-msg' style='color:#ef4444;'>Erro ao carregar do Firebase.</p>";
+        });
+}
 
     // Função para selecionar/deselecionar o serviço ao clicar
     function alternarServico(id) {
@@ -1328,107 +1507,108 @@
     // GERENCIAMENTO DE AGENDAMENTOS
     // =========================================================================
     function carregarAgendamentosReais() {
-        const containerHome = document.getElementById("appointments-list");
-        const containerModal = document.getElementById("full-appointments-list");
+    const containerHome = document.getElementById("appointments-list");
+    const containerModal = document.getElementById("full-appointments-list");
 
-        if (!containerHome && !containerModal) return;
+    if (!containerHome && !containerModal) return;
 
-        if (!usuarioLogado) {
-            const mensagemLogin = `
-                <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                    Faça login para ver os seus agendamentos.
-                </div>`;
-            if (containerHome) containerHome.innerHTML = mensagemLogin;
-            if (containerModal) containerModal.innerHTML = mensagemLogin;
-            return;
-        }
+    if (!usuarioLogado) {
+        const mensagemLogin = `
+            <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                Faça login para ver os seus agendamentos.
+            </div>`;
+        if (containerHome) containerHome.innerHTML = mensagemLogin;
+        if (containerModal) containerModal.innerHTML = mensagemLogin;
+        return;
+    }
 
-        db.collection("agendamentos")
-            .where("usuario", "==", usuarioLogado)
-            .onSnapshot((snapshot) => {
-                if (containerHome) containerHome.innerHTML = "";
-                if (containerModal) containerModal.innerHTML = "";
+    db.collection("agendamentos")
+        .where("usuario", "==", usuarioLogado)
+        .onSnapshot((snapshot) => {
+            if (containerHome) containerHome.innerHTML = "";
+            if (containerModal) containerModal.innerHTML = "";
 
-                if (snapshot.empty) {
-                    const mensagemVazio = `
-                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                            Ainda não possui agendamentos.
-                        </div>`;
-                    if (containerHome) containerHome.innerHTML = mensagemVazio;
-                    if (containerModal) containerModal.innerHTML = mensagemVazio;
-                    return;
+            if (snapshot.empty) {
+                const mensagemVazio = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+                if (containerHome) containerHome.innerHTML = mensagemVazio;
+                if (containerModal) containerModal.innerHTML = mensagemVazio;
+                return;
+            }
+
+            let temProximosHome = false;
+            let temHistoricoModal = false;
+
+            snapshot.forEach((doc) => {
+                const ag = doc.data();
+                const idDoc = doc.id;
+                const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                let status = ag.status || "Pendente";
+
+                let jaPassou = false;
+                if (ag.data && ag.horario) {
+                    const agora = new Date();
+                    const partesData = ag.data.split('/');
+                    const dia = parseInt(partesData[0], 10);
+                    const mes = parseInt(partesData[1], 10) - 1;
+                    const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
+
+                    const partesHora = ag.horario.split(':');
+                    const hora = parseInt(partesHora[0], 10);
+                    const min = parseInt(partesHora[1], 10);
+
+                    const dataAgendamento = new Date(ano, mes, dia, hora, min);
+                    jaPassou = dataAgendamento < agora;
                 }
 
-                let temProximosHome = false;
-                let temHistoricoModal = false;
+                const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
+                const totalFormatado = ag.total ? Number(ag.total).toFixed(2).replace('.', ',') : '0,00';
 
-                snapshot.forEach((doc) => {
-                    const ag = doc.data();
-                    const idDoc = doc.id;
-                    const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
-                    let status = ag.status || "Pendente";
-
-                    let jaPassou = false;
-                    if (ag.data && ag.horario) {
-                        const agora = new Date();
-                        const partesData = ag.data.split('/');
-                        const dia = parseInt(partesData[0], 10);
-                        const mes = parseInt(partesData[1], 10) - 1;
-                        const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
-
-                        const partesHora = ag.horario.split(':');
-                        const hora = parseInt(partesHora[0], 10);
-                        const min = parseInt(partesHora[1], 10);
-
-                        const dataAgendamento = new Date(ano, mes, dia, hora, min);
-                        jaPassou = dataAgendamento < agora;
-                    }
-
-                    const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
-
-                    const cardHTML = `
-                        <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
-                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-                                📅 ${ag.data} - ${ag.horario}
-                            </div>
-                            <div style="font-size: 13px; color: #4b5563;">
-                                ✂ ${listaServicos}
-                            </div>
-                            <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
-                                👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
-                            </div>
-                            ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
+                const cardHTML = `
+                    <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                            📅 ${ag.data} - ${ag.horario}
                         </div>
-                    `;
+                        <div style="font-size: 13px; color: #4b5563;">
+                            ✂ ${listaServicos}
+                        </div>
+                        <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
+                            👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
+                        </div>
+                        ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${totalFormatado}</div>` : ''}
+                    </div>
+                `;
 
-                    // Tela Inicial: Só exibe futuros e não finalizados
-                    if (containerHome && !jaPassou && !statusFinalizado) {
-                        containerHome.innerHTML += cardHTML;
-                        temProximosHome = true;
-                    }
-
-                    // Modal: Histórico completo
-                    if (containerModal) {
-                        containerModal.innerHTML += cardHTML;
-                        temHistoricoModal = true;
-                    }
-                });
-
-                if (containerHome && !temProximosHome) {
-                    containerHome.innerHTML = `
-                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                            Você não possui próximos agendamentos.
-                        </div>`;
+                // Tela Inicial: Exibe apenas agendamentos futuros e ativos
+                if (containerHome && !jaPassou && !statusFinalizado) {
+                    containerHome.innerHTML += cardHTML;
+                    temProximosHome = true;
                 }
 
-                if (containerModal && !temHistoricoModal) {
-                    containerModal.innerHTML = `
-                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                            Ainda não possui agendamentos.
-                        </div>`;
+                // Modal: Histórico completo
+                if (containerModal) {
+                    containerModal.innerHTML += cardHTML;
+                    temHistoricoModal = true;
                 }
             });
-    }
+
+            if (containerHome && !temProximosHome) {
+                containerHome.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Você não possui próximos agendamentos.
+                    </div>`;
+            }
+
+            if (containerModal && !temHistoricoModal) {
+                containerModal.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+            }
+        });
+}
 
     function cancelarAgendamento(idDoc) {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
