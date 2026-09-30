@@ -90,7 +90,7 @@
 
       if (!dataInput) return;
 
-      // Converte data "YYYY-MM-DD" para "DD/MM" (formato que está no seu código do cliente)
+      // Converte data "YYYY-MM-DD" para "DD/MM" (formato utilizado no agendamento do cliente)
       const [ano, mes, dia] = dataInput.split("-");
       const dataFormatada = `${dia}/${mes}`;
 
@@ -116,6 +116,13 @@
             const status = ag.status || "Pendente";
             const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
 
+            // Tratamento do telefone e link direto para WhatsApp
+            const telOriginal = ag.telefone || "Não informado";
+            const telApenasNumeros = telOriginal.replace(/\D/g, "");
+            const linkWhatsapp = telApenasNumeros 
+              ? `https://wa.me/55${telApenasNumeros}?text=Olá!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
+              : "#";
+
             let cardClass = "card";
             if (status === "Concluído") cardClass += " concluido";
             if (status === "Cancelado") cardClass += " cancelado";
@@ -124,10 +131,11 @@
               <div class="${cardClass}">
                 <div class="card-header">
                   <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
-                  <span>R$ ${ag.total ? ag.total.toFixed(2) : '0.00'}</span>
+                  <span>R$ ${ag.total ? Number(ag.total).toFixed(2) : '0.00'}</span>
                 </div>
                 <div class="card-body">
                   <p><strong>Cliente:</strong> ${ag.usuario}</p>
+                  <p><strong>Contato:</strong> ${telOriginal} ${telApenasNumeros ? `<a href="${linkWhatsapp}" target="_blank" style="color: #25D366; font-weight: bold; margin-left: 8px; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}</p>
                   <p><strong>Serviços:</strong> ${servicos}</p>
                   <p><strong>Status:</strong> ${status}</p>
                 </div>
