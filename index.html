@@ -599,7 +599,7 @@
     </style>
 </head>
 <body>
-    <!-- Toast de Notificação do Código de E-mail enviado (OTP) -->
+<!-- Toast de Notificação do Código de E-mail enviado (OTP) -->
     <div id="email-toast" class="toast-email"></div>
 
     <!-- Overlay do Menu Lateral -->
@@ -618,7 +618,7 @@
         </div>
         <nav class="sidebar-menu">
             <a href="#" class="menu-item active"><i class="fa-solid fa-house"></i> Início</a>
-            <a href="#" class="menu-item" onclick="openBookingModal(); toggleSidebar();"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
+            <a href="#" class="menu-item" onclick="openMyAppointmentsModal(); toggleSidebar();"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-ticket"></i> Vantagens Lerinho</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-layer-group"></i> Plano</a>
             <a href="#" class="menu-item logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
@@ -666,7 +666,7 @@
         <section class="appointments-section">
             <div class="section-header">
                 <h3>Próximos agendamentos</h3>
-                <a href="#" class="see-all">Ver tudo</a>
+                <a href="#" class="see-all" onclick="openMyAppointmentsModal(); return false;">Ver tudo</a>
             </div>
 
             <!-- Lista Dinâmica de Agendamentos Reais do Usuário -->
@@ -801,6 +801,20 @@
         </div>
     </div>
 
+    <!-- Modal de Lista Completa de Agendamentos -->
+    <div class="modal" id="my-appointments-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-btn" onclick="closeMyAppointmentsModal()"><i class="fa-solid fa-chevron-left"></i></button>
+                <h2>Meus Agendamentos</h2>
+            </div>
+            <p class="modal-instruction">Histórico completo dos seus horários</p>
+
+            <div id="full-appointments-list" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+                <!-- Carregado dinamicamente via JS -->
+            </div>
+        </div>
+    </div>
     <!-- Bottom Sheet -->
     <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
     <div class="bottom-sheet" id="bottom-sheet">
