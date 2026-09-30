@@ -1009,7 +1009,7 @@
     
     let servicosSelecionados = [];
 
-    function renderizarAbaServicos() {
+function renderizarAbaServicos() {
     const sheetBody = document.getElementById("sheet-body");
     if (!sheetBody) return;
 
@@ -1053,7 +1053,6 @@
     html += `</div>`;
     sheetBody.innerHTML = html;
 }
-
 function carregarAgendamentosReais() {
     const containerHome = document.getElementById("appointments-list");
     const containerModal = document.getElementById("full-appointments-list");
@@ -1229,7 +1228,6 @@ function carregarAgendamentos() {
             container.innerHTML = "<p class='empty-msg' style='color:#ef4444;'>Erro ao carregar do Firebase.</p>";
         });
 }
-
     // Função para selecionar/deselecionar o serviço ao clicar
     function alternarServico(id) {
         const servico = barberData.servicos.find(s => s.id === id);
