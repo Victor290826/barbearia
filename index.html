@@ -908,6 +908,75 @@
         ],
         horarios: ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00"]
     };
+    
+    let servicosSelecionados = [];
+
+    // Função que renderiza a aba dentro do #sheet-body
+    function renderizarAbaServicos() {
+        const sheetBody = document.getElementById("sheet-body");
+        if (!sheetBody) return;
+
+        let html = `
+            <h3 style="text-align: center; font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 16px;">
+                Selecione os serviços
+            </h3>
+            <div class="services-container">
+        `;
+
+        barberData.servicos.forEach(s => {
+            const estaSelecionado = servicosSelecionados.some(item => item.id === s.id);
+
+            html += `
+                <div class="service-card ${estaSelecionado ? 'selected' : ''}" onclick="alternarServico(${s.id})">
+                    ${s.emAlta ? `
+                        <div class="service-badge">
+                            <i class="fa-solid fa-droplet"></i> Em alta
+                        </div>
+                    ` : ''}
+
+                    <div class="service-info">
+                        <span class="service-title">${s.nome}</span>
+                        <div class="service-prices">
+                            <span class="price-current">R$ ${s.preco.toFixed(2).replace('.', ',')}</span>
+                            ${s.precoAntigo ? `<span class="price-old">R$ ${s.precoAntigo.toFixed(2).replace('.', ',')}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="service-check">
+                        ${estaSelecionado ? '<i class="fa-solid fa-check"></i>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        sheetBody.innerHTML = html;
+    }
+
+    // Função para selecionar/deselecionar o serviço ao clicar
+    function alternarServico(id) {
+        const servico = barberData.servicos.find(s => s.id === id);
+        if (!servico) return;
+
+        const idx = servicosSelecionados.findIndex(s => s.id === id);
+        if (idx > -1) {
+            servicosSelecionados.splice(idx, 1);
+        } else {
+            servicosSelecionados.push(servico);
+        }
+
+        renderizarAbaServicos();
+
+        // Atualiza o texto no modal principal do agendamento
+        const label = document.getElementById("selected-services-label");
+        if (label) {
+            if (servicosSelecionados.length === 0) {
+                label.innerText = "Selecione os serviços";
+            } else {
+                label.innerText = servicosSelecionados.map(s => s.nome).join(", ");
+            }
+        }
+    }
 
     let usuarioLogado = localStorage.getItem("usuario_logado") || null;
     let nomeUsuario = localStorage.getItem("nome_usuario") || null;
@@ -924,31 +993,31 @@
         dayIndex: null,
         horario: null
     };
+
     // =========================================================================
-// MODAL DE MEUS AGENDAMENTOS
-// =========================================================================
-function openMyAppointmentsModal() {
-    const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
-    if (modal) {
-        modal.classList.add("open");
-        modal.style.display = 'flex';
-        carregarAgendamentosReais();
-    } else {
-        // Caso não exista um elemento modal separado, rola até a lista de agendamentos
-        const container = document.getElementById("appointments-list");
-        if (container) {
-            container.scrollIntoView({ behavior: "smooth" });
+    // MODAL DE MEUS AGENDAMENTOS
+    // =========================================================================
+    function openMyAppointmentsModal() {
+        const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
+        if (modal) {
+            modal.classList.add("open");
+            modal.style.display = 'flex';
+            carregarAgendamentosReais();
+        } else {
+            const container = document.getElementById("appointments-list");
+            if (container) {
+                container.scrollIntoView({ behavior: "smooth" });
+            }
         }
     }
-}
 
-function closeMyAppointmentsModal() {
-    const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
-    if (modal) {
-        modal.classList.remove("open");
-        modal.style.display = 'none';
+    function closeMyAppointmentsModal() {
+        const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
+        if (modal) {
+            modal.classList.remove("open");
+            modal.style.display = 'none';
+        }
     }
-}
 
     // =========================================================================
     // INICIALIZAÇÃO DA PÁGINA E AUTENTICAÇÃO GOOGLE
@@ -1161,113 +1230,108 @@ function closeMyAppointmentsModal() {
     // GERENCIAMENTO DE AGENDAMENTOS
     // =========================================================================
     function carregarAgendamentosReais() {
-    // Procura o container da página inicial e o container do modal
-    const containerHome = document.getElementById("appointments-list");
-    const containerModal = document.getElementById("full-appointments-list");
+        const containerHome = document.getElementById("appointments-list");
+        const containerModal = document.getElementById("full-appointments-list");
 
-    if (!containerHome && !containerModal) return;
+        if (!containerHome && !containerModal) return;
 
-    if (!usuarioLogado) {
-        const mensagemLogin = `
-            <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                Faça login para ver os seus agendamentos.
-            </div>`;
-        if (containerHome) containerHome.innerHTML = mensagemLogin;
-        if (containerModal) containerModal.innerHTML = mensagemLogin;
-        return;
-    }
+        if (!usuarioLogado) {
+            const mensagemLogin = `
+                <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                    Faça login para ver os seus agendamentos.
+                </div>`;
+            if (containerHome) containerHome.innerHTML = mensagemLogin;
+            if (containerModal) containerModal.innerHTML = mensagemLogin;
+            return;
+        }
 
-    db.collection("agendamentos")
-        .where("usuario", "==", usuarioLogado)
-        .onSnapshot((snapshot) => {
-            if (containerHome) containerHome.innerHTML = "";
-            if (containerModal) containerModal.innerHTML = "";
+        db.collection("agendamentos")
+            .where("usuario", "==", usuarioLogado)
+            .onSnapshot((snapshot) => {
+                if (containerHome) containerHome.innerHTML = "";
+                if (containerModal) containerModal.innerHTML = "";
 
-            if (snapshot.empty) {
-                const mensagemVazio = `
-                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                        Ainda não possui agendamentos.
-                    </div>`;
-                if (containerHome) containerHome.innerHTML = mensagemVazio;
-                if (containerModal) containerModal.innerHTML = mensagemVazio;
-                return;
-            }
-
-            let temProximosHome = false;
-            let temHistoricoModal = false;
-
-            snapshot.forEach((doc) => {
-                const ag = doc.data();
-                const idDoc = doc.id;
-                const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
-                let status = ag.status || "Pendente";
-
-                // Valida se a data e o horário já passaram em relação ao momento atual
-                let jaPassou = false;
-                if (ag.data && ag.horario) {
-                    const agora = new Date();
-                    const partesData = ag.data.split('/');
-                    const dia = parseInt(partesData[0], 10);
-                    const mes = parseInt(partesData[1], 10) - 1;
-                    const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
-
-                    const partesHora = ag.horario.split(':');
-                    const hora = parseInt(partesHora[0], 10);
-                    const min = parseInt(partesHora[1], 10);
-
-                    const dataAgendamento = new Date(ano, mes, dia, hora, min);
-                    jaPassou = dataAgendamento < agora;
+                if (snapshot.empty) {
+                    const mensagemVazio = `
+                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                            Ainda não possui agendamentos.
+                        </div>`;
+                    if (containerHome) containerHome.innerHTML = mensagemVazio;
+                    if (containerModal) containerModal.innerHTML = mensagemVazio;
+                    return;
                 }
 
-                // Verifica se o status está marcado como concluído ou cancelado
-                const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
+                let temProximosHome = false;
+                let temHistoricoModal = false;
 
-                const cardHTML = `
-                    <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
-                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-                            📅 ${ag.data} - ${ag.horario}
-                        </div>
-                        <div style="font-size: 13px; color: #4b5563;">
-                            ✂ ${listaServicos}
-                        </div>
-                        <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
-                            👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
-                        </div>
-                        ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
-                    </div>
-                `;
+                snapshot.forEach((doc) => {
+                    const ag = doc.data();
+                    const idDoc = doc.id;
+                    const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                    let status = ag.status || "Pendente";
 
-                // 1. TELA INICIAL (appointments-list): Só exibe se ainda NÃO passou e NÃO foi concluído
-                if (containerHome && !jaPassou && !statusFinalizado) {
-                    containerHome.innerHTML += cardHTML;
-                    temProximosHome = true;
+                    let jaPassou = false;
+                    if (ag.data && ag.horario) {
+                        const agora = new Date();
+                        const partesData = ag.data.split('/');
+                        const dia = parseInt(partesData[0], 10);
+                        const mes = parseInt(partesData[1], 10) - 1;
+                        const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
+
+                        const partesHora = ag.horario.split(':');
+                        const hora = parseInt(partesHora[0], 10);
+                        const min = parseInt(partesHora[1], 10);
+
+                        const dataAgendamento = new Date(ano, mes, dia, hora, min);
+                        jaPassou = dataAgendamento < agora;
+                    }
+
+                    const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
+
+                    const cardHTML = `
+                        <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                                📅 ${ag.data} - ${ag.horario}
+                            </div>
+                            <div style="font-size: 13px; color: #4b5563;">
+                                ✂ ${listaServicos}
+                            </div>
+                            <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
+                                👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
+                            </div>
+                            ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
+                        </div>
+                    `;
+
+                    // Tela Inicial: Só exibe futuros e não finalizados
+                    if (containerHome && !jaPassou && !statusFinalizado) {
+                        containerHome.innerHTML += cardHTML;
+                        temProximosHome = true;
+                    }
+
+                    // Modal: Histórico completo
+                    if (containerModal) {
+                        containerModal.innerHTML += cardHTML;
+                        temHistoricoModal = true;
+                    }
+                });
+
+                if (containerHome && !temProximosHome) {
+                    containerHome.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                            Você não possui próximos agendamentos.
+                        </div>`;
                 }
 
-                // 2. MODAL (full-appointments-list): Exibe o histórico completo
-                if (containerModal) {
-                    containerModal.innerHTML += cardHTML;
-                    temHistoricoModal = true;
+                if (containerModal && !temHistoricoModal) {
+                    containerModal.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                            Ainda não possui agendamentos.
+                        </div>`;
                 }
             });
+    }
 
-            // Caso não existam agendamentos futuros para mostrar na Home
-            if (containerHome && !temProximosHome) {
-                containerHome.innerHTML = `
-                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                        Você não possui próximos agendamentos.
-                    </div>`;
-            }
-
-            // Caso não exista nenhum histórico no modal
-            if (containerModal && !temHistoricoModal) {
-                containerModal.innerHTML = `
-                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                        Ainda não possui agendamentos.
-                    </div>`;
-            }
-        });
-}
-    
     function cancelarAgendamento(idDoc) {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
             db.collection("agendamentos").doc(idDoc).update({
@@ -1440,11 +1504,9 @@ function closeMyAppointmentsModal() {
     }
 
     function obterHorariosPorDia(dayIndex) {
-        // Horários padronizados com dois dígitos
         let horarios = ["08:00", "09:30", "11:00", "14:00", "15:30", "17:00"];
 
         if (dayIndex === 5 || dayIndex === 6) { 
-            // Sexta (5) e Sábado (6)
             horarios.push("18:30");
         }
     
@@ -1533,7 +1595,7 @@ function closeMyAppointmentsModal() {
                 const eHoje = bookingState.data === availableDays[0]?.formatted;
                 const minutosAtuais = agora.getHours() * 60 + agora.getMinutes();
 
-                let horaiosOcupadosBarbeiro = [];
+                let horariosOcupadosBarbeiro = [];
                 let meusHorariosNoDia = [];
 
                 try {
@@ -1545,7 +1607,7 @@ function closeMyAppointmentsModal() {
                         const ag = doc.data();
                         if (ag.status !== "Cancelado") {
                             if (bookingState.profissional && ag.profissional === bookingState.profissional) {
-                                horaiosOcupadosBarbeiro.push(ag.horario);
+                                horariosOcupadosBarbeiro.push(ag.horario);
                             }
                             if (ag.usuario === usuarioLogado) {
                                 meusHorariosNoDia.push(ag.horario);
@@ -1565,7 +1627,7 @@ function closeMyAppointmentsModal() {
                         return;
                     }
 
-                    const jaOcupado = horaiosOcupadosBarbeiro.includes(h);
+                    const jaOcupado = horariosOcupadosBarbeiro.includes(h);
                     const conflitoIntervaloCliente = meusHorariosNoDia.some(horarioAgendado => {
                         const agMinutos = converterHorarioParaMinutos(horarioAgendado);
                         return Math.abs(hMinutos - agMinutos) < 60;
@@ -1574,16 +1636,16 @@ function closeMyAppointmentsModal() {
                     const selected = bookingState.horario === h;
 
                     if (jaOcupado) {
-                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Horário já reservado">Ocupado (${h})</button>`;
+                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Horário já reservado">${h}</button>`;
                     } else if (conflitoIntervaloCliente) {
-                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Intervalo mínimo de 1h entre seus cortes">${h}</button>`;
+                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Intervalo mínimo de 1 hora entre agendamentos">${h}</button>`;
                     } else {
                         contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
                     }
                 });
             } else {
                 contentHTML += `<p style="font-size: 13px; color: #6b7280;">Selecione um dia acima para ver os horários.</p>`;
-            }   
+            }
             contentHTML += `</div>`;
         }
 
@@ -1632,27 +1694,17 @@ function closeMyAppointmentsModal() {
     // Função ajustada para processar datas sem ano ("DD/MM") utilizando o ano atual como fallback
     function agendamentoJaPassou(dataStr, horarioStr) {
         if (!dataStr || !horarioStr) return false;
-
-        let dia, mes, ano = new Date().getFullYear();
-
-        if (dataStr.includes('/')) {
-            const partes = dataStr.split('/');
-            dia = parseInt(partes[0], 10);
-            mes = parseInt(partes[1], 10) - 1;
-            if (partes[2]) ano = parseInt(partes[2], 10);
-        } else if (dataStr.includes('-')) {
-            const partes = dataStr.split('-');
-            ano = parseInt(partes[0], 10);
-            mes = parseInt(partes[1], 10) - 1;
-            dia = parseInt(partes[2], 10);
-        } else {
-            return false;
-        }
-
-        const [horas, minutos] = horarioStr.split(':').map(Number);
-        const dataAgendamento = new Date(ano, mes, dia, horas, minutos);
         const agora = new Date();
+        const partesData = dataStr.split('/');
+        const dia = parseInt(partesData[0], 10);
+        const mes = parseInt(partesData[1], 10) - 1;
+        const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
 
+        const partesHora = horarioStr.split(':');
+        const hora = parseInt(partesHora[0], 10);
+        const min = parseInt(partesHora[1], 10);
+
+        const dataAgendamento = new Date(ano, mes, dia, hora, min);
         return dataAgendamento < agora;
     }
 </script>
