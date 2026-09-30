@@ -598,7 +598,7 @@
         }
     </style>
 </head>
-<body>
+    <body>
     <!-- Toast de Notificação do Código de E-mail enviado (OTP) -->
     <div id="email-toast" class="toast-email"></div>
 
@@ -1134,27 +1134,29 @@ function closeMyAppointmentsModal() {
     // GERENCIAMENTO DE AGENDAMENTOS
     // =========================================================================
     function carregarAgendamentosReais() {
-        const container = document.getElementById("appointments-list");
-        if (!container) return;
+    // Seleciona tanto o container da home quanto o container do modal
+    const containers = document.querySelectorAll("#appointments-list, #modal-appointments-list, .appointments-list");
+    if (!containers.length) return;
 
-        container.innerHTML = "";
-
-        if (!usuarioLogado) {
+    if (!usuarioLogado) {
+        containers.forEach(container => {
             container.innerHTML = `
-                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
-                    Faça login com seu e-mail verificado para ver e realizar agendamentos.
+                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                    Faça login para ver e realizar agendamentos.
                 </div>`;
-            return;
-        }
+        });
+        return;
+    }
 
-        db.collection("agendamentos")
-            .where("usuario", "==", usuarioLogado)
-            .onSnapshot((snapshot) => {
+    db.collection("agendamentos")
+        .where("usuario", "==", usuarioLogado)
+        .onSnapshot((snapshot) => {
+            containers.forEach(container => {
                 container.innerHTML = "";
 
                 if (snapshot.empty) {
                     container.innerHTML = `
-                        <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px;">
+                        <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
                             Você ainda não possui agendamentos.
                         </div>`;
                     return;
@@ -1167,7 +1169,6 @@ function closeMyAppointmentsModal() {
                     
                     let status = ag.status || "Pendente";
                     
-                    // Atualiza exibição se o horário do agendamento já expirou
                     if (status !== "Cancelado" && agendamentoJaPassou(ag.data, ag.horario)) {
                         status = "Concluído";
                     }
@@ -1191,7 +1192,8 @@ function closeMyAppointmentsModal() {
                     `;
                 });
             });
-    }
+        });
+}
 
     function cancelarAgendamento(idDoc) {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
