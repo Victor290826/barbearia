@@ -840,12 +840,12 @@
     // Escala de Barbeiros (0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado)
     const escalaBarbeiros = {
         0: [], // Domingo: Fechado
-        1: ["Gabriel"], // Segunda: Apenas Gabriel
-        2: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
-        3: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
-        4: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
-        5: ["Lerinho Costa", "Luan Cezar", "Gabriel"],
-        6: ["Lerinho Costa", "Luan Cezar", "Gabriel"]
+        1: [], // Segunda: Apenas Gabriel
+        2: ["Lerinho Costa", "Luan Cezar"],
+        3: ["Lerinho Costa", "Luan Cezar"],
+        4: ["Lerinho Costa", "Luan Cezar"],
+        5: ["Lerinho Costa", "Luan Cezar"],
+        6: ["Lerinho Costa", "Luan Cezar"]
     };
 
     const barberData = {
@@ -1329,6 +1329,20 @@
         }
         return days;
     }
+    function obterHorariosPorDia(dayIndex) {
+    // Horários base padrão (Terça a Quinta)
+    let horarios = ["09:00", "10:00", "11:00", "13:30", "14:30", "15:30", "16:30"];
+
+        if (dayIndex === 1) { 
+            // Segunda-feira (dayIndex 1): inclui 17:30
+            horarios.push("17:30");
+        } else if (dayIndex === 5 || dayIndex === 6) { 
+            // Sexta (5) e Sábado (6): inclui 17:30 e 18:30
+            horarios.push("17:30", "18:30");
+        }
+
+    return horarios;
+    }
 
     // =========================================================================
 // ETAPAS DE AGENDAMENTO (CORRIGIDO PARA FIREBASE)
@@ -1414,12 +1428,10 @@ async function openStep(stepName) {
         contentHTML += `</div><div class="time-grid">`;
 
         if (bookingState.data) {
-            // VERIFICA SE A DATA SELECIONADA É O DIA DE HOJE
             const agora = new Date();
             const eHoje = bookingState.data === availableDays[0]?.formatted;
             const minutosAtuais = agora.getHours() * 60 + agora.getMinutes();
 
-            // BUSCA AGENDAMENTOS REAIS NO FIRESTORE PARA O DIA SELECIONADO
             let horaiosOcupadosBarbeiro = [];
             let meusHorariosNoDia = [];
 
@@ -1443,18 +1455,18 @@ async function openStep(stepName) {
                 console.error("Erro ao buscar horários ocupados:", err);
             }
 
-            barberData.horarios.forEach(h => {
+            // OBTÉM A LISTA DE HORÁRIOS DINÂMICA COM BASE NO DIA SELECIONADO
+            const listaHorarios = obterHorariosPorDia(bookingState.dayIndex);
+
+            listaHorarios.forEach(h => {
                 const hMinutos = converterHorarioParaMinutos(h);
 
-                // REGRA NOVA: Se for hoje e o horário já passou, ignora e faz desaparecer
+                // Oculta horários que já passaram no dia de hoje
                 if (eHoje && hMinutos <= minutosAtuais) {
                     return;
                 }
 
-                // Regra 1: Horário já reservado para este barbeiro por qualquer cliente
                 const jaOcupado = horaiosOcupadosBarbeiro.includes(h);
-
-                // Regra 2: Intervalo mínimo de 60 minutos entre agendamentos do MESMO cliente
                 const conflitoIntervaloCliente = meusHorariosNoDia.some(horarioAgendado => {
                     const agMinutos = converterHorarioParaMinutos(horarioAgendado);
                     return Math.abs(hMinutos - agMinutos) < 60;
@@ -1479,7 +1491,7 @@ async function openStep(stepName) {
     body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
     sheet.classList.add("open");
     overlay.style.display = "block";
-}rrrrrr
+}
     function closeSheet() {
         document.getElementById("bottom-sheet").classList.remove("open");
         document.getElementById("sheet-overlay").style.display = "none";
