@@ -599,7 +599,6 @@
     </style>
 </head>
 <body>
-
     <!-- Toast de Notificação do Código de E-mail enviado (OTP) -->
     <div id="email-toast" class="toast-email"></div>
 
@@ -619,7 +618,7 @@
         </div>
         <nav class="sidebar-menu">
             <a href="#" class="menu-item active"><i class="fa-solid fa-house"></i> Início</a>
-            <a href="#" class="menu-item"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
+            <a href="#" class="menu-item" onclick="openBookingModal(); toggleSidebar();"><i class="fa-regular fa-calendar-days"></i> Agendamentos</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-ticket"></i> Vantagens Lerinho</a>
             <a href="#" class="menu-item"><i class="fa-solid fa-layer-group"></i> Plano</a>
             <a href="#" class="menu-item logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
@@ -808,7 +807,7 @@
         <div class="sheet-handle"></div>
         <div class="sheet-body" id="sheet-body"></div>
     </div>
-   
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
@@ -1377,12 +1376,12 @@ async function openStep(stepName) {
         barberData.servicos.forEach(s => {
             const checked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
             contentHTML += `
-                <div class="service-item">
+                <div class="service-item" onclick="toggleService('${s.nome}')" style="cursor: pointer; user-select: none;">
                     <div>
                         <strong>${s.nome}</strong>
                         <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
                     </div>
-                    <input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}>
+                    <input type="checkbox" ${checked} style="pointer-events: none;">
                 </div>`;
         });
     } else if (stepName === 'horario') {
@@ -1524,6 +1523,32 @@ async function openStep(stepName) {
         document.getElementById("selected-date-label").innerText = `${bookingState.data} às ${h}`;
         openStep('horario');
     }
+    // Retorna true se o agendamento já passou da data e hora atuais
+function agendamentoJaPassou(dataStr, horarioStr) {
+    if (!dataStr || !horarioStr) return false;
+
+    // Suporta formato "DD/MM/YYYY" ou "YYYY-MM-DD"
+    let dia, mes, ano;
+    if (dataStr.includes('/')) {
+        const partes = dataStr.split('/');
+        dia = parseInt(partes[0], 10);
+        mes = parseInt(partes[1], 10) - 1; // Mês no JS começa em 0
+        ano = parseInt(partes[2], 10);
+    } else if (dataStr.includes('-')) {
+        const partes = dataStr.split('-');
+        ano = parseInt(partes[0], 10);
+        mes = parseInt(partes[1], 10) - 1;
+        dia = parseInt(partes[2], 10);
+    } else {
+        return false;
+    }
+
+    const [horas, minutos] = horarioStr.split(':').map(Number);
+    const dataAgendamento = new Date(ano, mes, dia, horas, minutos);
+    const agora = new Date();
+
+    return dataAgendamento < agora;
+}
 </script>
 </body>
 </html>
