@@ -1333,117 +1333,145 @@
         return days;
     }
 
-    function openStep(stepName) {
-        const sheet = document.getElementById("bottom-sheet");
-        const overlay = document.getElementById("sheet-overlay");
-        const body = document.getElementById("sheet-body");
-        let contentHTML = "";
+    // =========================================================================
+// ETAPAS DE AGENDAMENTO (CORRIGIDO PARA FIREBASE)
+// =========================================================================
+async function openStep(stepName) {
+    const sheet = document.getElementById("bottom-sheet");
+    const overlay = document.getElementById("sheet-overlay");
+    const body = document.getElementById("sheet-body");
+    let contentHTML = "";
 
-        if (stepName === 'profissional') {
-            contentHTML += `<div class="barber-grid">`;
-            let barbeirosDisponiveis = barberData.profissionais;
+    if (stepName === 'profissional') {
+        contentHTML += `<div class="barber-grid">`;
+        let barbeirosDisponiveis = barberData.profissionais;
 
-            if (bookingState.dayIndex !== null) {
-                const nomesPermitidos = escalaBarbeiros[bookingState.dayIndex] || [];
-                barbeirosDisponiveis = barberData.profissionais.filter(p => nomesPermitidos.includes(p.nome));
-            }
-
-            if (barbeirosDisponiveis.length === 0) {
-                contentHTML += `<p style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 13px;">Nenhum barbeiro disponível para a data selecionada.</p>`;
-            } else {
-                barbeirosDisponiveis.forEach(p => {
-                    contentHTML += `
-                        <div class="barber-card" onclick="selectBarber('${p.nome}')">
-                            <img src="${p.img}" class="barber-img" alt="${p.nome}">
-                            <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
-                        </div>`;
-                });
-            }
-            contentHTML += `</div>`;
-        } else if (stepName === 'servicos') {
-            barberData.servicos.forEach(s => {
-                const checked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
-                contentHTML += `
-                    <div class="service-item">
-                        <div>
-                            <strong>${s.nome}</strong>
-                            <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
-                        </div>
-                        <input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}>
-                    </div>`;
-            });
-        } else if (stepName === 'horario') {
-            const availableDays = getNext7Days();
-            contentHTML += `<div class="date-selector-grid">`;
-
-            availableDays.forEach(d => {
-                const selected = bookingState.data === d.formatted;
-                let trabalhaNoDia = true;
-
-                if (bookingState.profissional) {
-                    const barbeirosDoDia = escalaBarbeiros[d.dayIndex] || [];
-                    trabalhaNoDia = barbeirosDoDia.includes(bookingState.profissional);
-                }
-
-                if (d.isClosed) {
-                    contentHTML += `
-                    <div class="date-col" style="opacity: 0.4;">
-                        <span class="day-name">${d.dayOfWeek}</span>
-                        <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
-                        <span style="font-size: 9px; color: #ef4444; font-weight: bold;">Fechado</span>
-                    </div>`;
-                } else if (!trabalhaNoDia) {
-                    contentHTML += `
-                    <div class="date-col" style="opacity: 0.4;">
-                        <span class="day-name">${d.dayOfWeek}</span>
-                        <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
-                        <span style="font-size: 9px; color: #6b7280; font-weight: bold;">Folga</span>
-                    </div>`;
-                } else {
-                    contentHTML += `
-                    <div class="date-col">
-                        <span class="day-name">${d.dayOfWeek}</span>
-                        <button class="day-number-btn ${selected ? 'selected' : ''}" onclick="selectDate('${d.formatted}', ${d.dayIndex})">${d.dayNum}</button>
-                    </div>`;
-                }
-            });
-
-            contentHTML += `</div><div class="time-grid">`;
-            if (bookingState.data) {
-                // Busca agendamentos prévios do cliente na data selecionada
-                const todosAgendamentos = JSON.parse(localStorage.getItem("agendamentos_barbearia") || "[]");
-                const meusAgendamentosNoDia = todosAgendamentos.filter(
-                    a => a.usuario === usuarioLogado && a.data === bookingState.data
-                );
-
-                barberData.horarios.forEach(h => {
-                    const hMinutos = converterHorarioParaMinutos(h);
-                    const conflito2Horas = meusAgendamentosNoDia.some(ag => {
-                        const agMinutos = converterHorarioParaMinutos(ag.horario);
-                        return Math.abs(hMinutos - agMinutos) < 120;
-                    });
-
-                    const selected = bookingState.horario === h;
-
-                    if (conflito2Horas) {
-                        // Desabilita visualmente o botão do horário
-                        contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Intervalo mínimo de 2h entre cortes">${h}</button>`;
-                    } else {
-                        contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
-                    }
-                });
-            } else {
-                contentHTML += `<p style="font-size: 13px; color: #6b7280;">Selecione um dia acima para ver os horários.</p>`;
-            }   
-            contentHTML += `</div>`;
+        if (bookingState.dayIndex !== null) {
+            const nomesPermitidos = escalaBarbeiros[bookingState.dayIndex] || [];
+            barbeirosDisponiveis = barberData.profissionais.filter(p => nomesPermitidos.includes(p.nome));
         }
 
-        // Exibe o conteúdo na gaveta (bottom-sheet) e abre no navegador
-        body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
-        sheet.classList.add("open");
-        overlay.style.display = "block";
+        if (barbeirosDisponiveis.length === 0) {
+            contentHTML += `<p style="grid-column: 1/-1; text-align: center; color: #ef4444; font-size: 13px;">Nenhum barbeiro disponível para a data selecionada.</p>`;
+        } else {
+            barbeirosDisponiveis.forEach(p => {
+                contentHTML += `
+                    <div class="barber-card" onclick="selectBarber('${p.nome}')">
+                        <img src="${p.img}" class="barber-img" alt="${p.nome}">
+                        <div style="font-size: 13px; font-weight: 600;">${p.nome}</div>
+                    </div>`;
+            });
+        }
+        contentHTML += `</div>`;
+    } else if (stepName === 'servicos') {
+        barberData.servicos.forEach(s => {
+            const checked = bookingState.servicos.includes(s.nome) ? 'checked' : '';
+            contentHTML += `
+                <div class="service-item">
+                    <div>
+                        <strong>${s.nome}</strong>
+                        <div style="font-size: 13px; color: #6b7280;">R$ ${s.preco.toFixed(2)}</div>
+                    </div>
+                    <input type="checkbox" onchange="toggleService('${s.nome}')" ${checked}>
+                </div>`;
+        });
+    } else if (stepName === 'horario') {
+        const availableDays = getNext7Days();
+        contentHTML += `<div class="date-selector-grid">`;
+
+        availableDays.forEach(d => {
+            const selected = bookingState.data === d.formatted;
+            let trabalhaNoDia = true;
+
+            if (bookingState.profissional) {
+                const barbeirosDoDia = escalaBarbeiros[d.dayIndex] || [];
+                trabalhaNoDia = barbeirosDoDia.includes(bookingState.profissional);
+            }
+
+            if (d.isClosed) {
+                contentHTML += `
+                <div class="date-col" style="opacity: 0.4;">
+                    <span class="day-name">${d.dayOfWeek}</span>
+                    <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                    <span style="font-size: 9px; color: #ef4444; font-weight: bold;">Fechado</span>
+                </div>`;
+            } else if (!trabalhaNoDia) {
+                contentHTML += `
+                <div class="date-col" style="opacity: 0.4;">
+                    <span class="day-name">${d.dayOfWeek}</span>
+                    <button class="day-number-btn" style="background:#e5e7eb; cursor:not-allowed;" disabled>${d.dayNum}</button>
+                    <span style="font-size: 9px; color: #6b7280; font-weight: bold;">Folga</span>
+                </div>`;
+            } else {
+                contentHTML += `
+                <div class="date-col">
+                    <span class="day-name">${d.dayOfWeek}</span>
+                    <button class="day-number-btn ${selected ? 'selected' : ''}" onclick="selectDate('${d.formatted}', ${d.dayIndex})">${d.dayNum}</button>
+                </div>`;
+            }
+        });
+
+        contentHTML += `</div><div class="time-grid">`;
+
+        if (bookingState.data) {
+            // BUSCA AGENDAMENTOS REAIS NO FIRESTORE PARA O DIA SELECIONADO
+            let horaiosOcupadosBarbeiro = [];
+            let meusHorariosNoDia = [];
+
+            try {
+                const snap = await db.collection("agendamentos")
+                    .where("data", "==", bookingState.data)
+                    .get();
+
+                snap.forEach(doc => {
+                    const ag = doc.data();
+                    if (ag.status !== "Cancelado") {
+                        // Ocupados pelo barbeiro selecionado
+                        if (bookingState.profissional && ag.profissional === bookingState.profissional) {
+                            horaiosOcupadosBarbeiro.push(ag.horario);
+                        }
+                        // Agendamentos do próprio usuário no mesmo dia
+                        if (ag.usuario === usuarioLogado) {
+                            meusHorariosNoDia.push(ag.horario);
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Erro ao buscar horários ocupados:", err);
+            }
+
+            barberData.horarios.forEach(h => {
+                const hMinutos = converterHorarioParaMinutos(h);
+
+                // Regra 1: Horário já reservado para este barbeiro por qualquer cliente
+                const jaOcupado = horaiosOcupadosBarbeiro.includes(h);
+
+                // Regra 2: Intervalo mínimo de 60 minutos entre agendamentos do MESMO cliente
+                const conflitoIntervaloCliente = meusHorariosNoDia.some(horarioAgendado => {
+                    const agMinutos = converterHorarioParaMinutos(horarioAgendado);
+                    return Math.abs(hMinutos - agMinutos) < 60; // Padronizado para 60min (1h)
+                });
+
+                const selected = bookingState.horario === h;
+
+                if (jaOcupado) {
+                    contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Horário já reservado">Ocupado (${h})</button>`;
+                } else if (conflitoIntervaloCliente) {
+                    contentHTML += `<button class="time-btn" style="opacity: 0.3; cursor: not-allowed; background: #e5e7eb;" disabled title="Intervalo mínimo de 1h entre seus cortes">${h}</button>`;
+                } else {
+                    contentHTML += `<button class="time-btn ${selected ? 'selected' : ''}" onclick="selectHorario('${h}')">${h}</button>`;
+                }
+            });
+        } else {
+            contentHTML += `<p style="font-size: 13px; color: #6b7280;">Selecione um dia acima para ver os horários.</p>`;
+        }   
+        contentHTML += `</div>`;
     }
 
+    body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
+    sheet.classList.add("open");
+    overlay.style.display = "block";
+}
     function closeSheet() {
         document.getElementById("bottom-sheet").classList.remove("open");
         document.getElementById("sheet-overlay").style.display = "none";
