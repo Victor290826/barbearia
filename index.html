@@ -362,6 +362,8 @@
             overflow-y: auto;
             background: radial-gradient(circle at center, #f5f5f5 0%, #e5e7eb 25%, #1f2937 100%);
             background-attachment: fixed;
+            justify-content: center;
+            align-items: center;
         }
 
         .modal.open {
@@ -596,6 +598,28 @@
             border-left: 4px solid #d2b378;
             max-width: 90%;
         }
+        /* Garante que o fundo do modal seja branco e visível */
+#my-appointments-modal .modal-content {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 480px;
+    width: 90%;
+    margin: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Garante o estilo dos cartões de agendamento */
+.appointments-list .appointment-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    color: #111827;
+    text-align: left;
+}
     </style>
 </head>
     <body>
@@ -907,6 +931,8 @@ function openMyAppointmentsModal() {
     const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
     if (modal) {
         modal.classList.add("open");
+        modal.style.display = 'flex';
+        carregarAgendamentosReais();
     } else {
         // Caso não exista um elemento modal separado, rola até a lista de agendamentos
         const container = document.getElementById("appointments-list");
@@ -920,6 +946,7 @@ function closeMyAppointmentsModal() {
     const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
     if (modal) {
         modal.classList.remove("open");
+        modal.style.display = 'none';
     }
 }
 
@@ -1134,15 +1161,19 @@ function closeMyAppointmentsModal() {
     // GERENCIAMENTO DE AGENDAMENTOS
     // =========================================================================
     function carregarAgendamentosReais() {
-    // Seleciona tanto o container da home quanto o container do modal
-    const containers = document.querySelectorAll("#appointments-list, #modal-appointments-list, .appointments-list");
+    // Procura o container da página inicial e o container do modal
+    const containers = [
+        document.getElementById("appointments-list"),
+        document.getElementById("full-appointments-list")
+    ].filter(Boolean); // Filtra e mantém apenas os elementos existentes no DOM
+
     if (!containers.length) return;
 
     if (!usuarioLogado) {
         containers.forEach(container => {
             container.innerHTML = `
-                <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                    Faça login para ver e realizar agendamentos.
+                <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                    Faça login para ver os seus agendamentos.
                 </div>`;
         });
         return;
@@ -1156,8 +1187,8 @@ function closeMyAppointmentsModal() {
 
                 if (snapshot.empty) {
                     container.innerHTML = `
-                        <div class="appointment-card" style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                            Você ainda não possui agendamentos.
+                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                            Ainda não possui agendamentos.
                         </div>`;
                     return;
                 }
@@ -1166,35 +1197,26 @@ function closeMyAppointmentsModal() {
                     const ag = doc.data();
                     const idDoc = doc.id;
                     const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
-                    
                     let status = ag.status || "Pendente";
-                    
-                    if (status !== "Cancelado" && agendamentoJaPassou(ag.data, ag.horario)) {
-                        status = "Concluído";
-                    }
 
                     container.innerHTML += `
-                        <div class="appointment-card">
-                            <div class="appointment-info date">
-                                <i class="fa-regular fa-circle"></i> <span>${ag.data}, ${ag.horario}</span>
+                        <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
+                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                                📅 ${ag.data} - ${ag.horario}
                             </div>
-                            <div class="appointment-info service">
-                                <i class="fa-solid fa-store"></i> <span>${listaServicos}</span>
+                            <div style="font-size: 13px; color: #4b5563;">
+                                ✂️️ ${listaServicos}
                             </div>
-                            <div class="appointment-info barber">
-                                <i class="fa-solid fa-user"></i> <span>${ag.profissional} (${ag.filial}) - <strong style="color:#d2b378;">${status}</strong></span>
+                            <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
+                                👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
                             </div>
-                            <div class="appointment-total">
-                                <span>Total: R$ ${ag.total ? ag.total.toFixed(2) : '0.00'}</span>
-                                ${status === 'Pendente' ? `<button class="btn-cancel" onclick="cancelarAgendamento('${idDoc}')">Cancelar</button>` : ''}
-                            </div>
+                            ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
                         </div>
                     `;
                 });
             });
         });
 }
-
     function cancelarAgendamento(idDoc) {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
             db.collection("agendamentos").doc(idDoc).update({
