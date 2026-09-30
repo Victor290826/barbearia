@@ -69,7 +69,7 @@
         messagingSenderId: "833448961588",
         appId: "1:833448961588:web:126db05be2e01890168c61"
     };
-    
+
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     } 
@@ -77,88 +77,100 @@
     window.db = firebase.firestore();
     var db = firebase.firestore();
 
-    // Define a data atual por padrão
-    document.getElementById("selectData").valueAsDate = new Date();
-
     let unsubscribe = null;
 
+    // Define a data atual por padrão no campo de busca
+    const inputData = document.getElementById("selectData");
+    if (inputData) {
+        inputData.valueAsDate = new Date();
+    }
+
     function carregarAgendamentos() {
-      const barbeiro = document.getElementById("selectBarbeiro").value;
-      const dataInput = document.getElementById("selectData").value; // Ex: "2026-09-29"
-      const container = document.getElementById("lista-agendamentos");
+        const barbeiroEl = document.getElementById("selectBarbeiro");
+        const dataInputEl = document.getElementById("selectData");
+        const container = document.getElementById("lista-agendamentos");
 
-      if (!dataInput) return;
+        // Verifica se os elementos existem na tela antes de ler os valores
+        if (!barbeiroEl || !dataInputEl || !container) return;
 
-      // Converte data "YYYY-MM-DD" para "DD/MM" (formato utilizado no agendamento do cliente)
-      const [ano, mes, dia] = dataInput.split("-");
-      const dataFormatada = `${dia}/${mes}`;
+        const barbeiro = barbeiroEl.value;
+        const dataInput = dataInputEl.value; // Ex: "2026-09-30"
 
-      container.innerHTML = "<p class='empty-msg'>Buscando agendamentos...</p>";
+        if (!dataInput) return;
 
-      if (unsubscribe) unsubscribe(); // Cancela o ouvinte anterior para economizar dados
+        // Converte data "YYYY-MM-DD" para "DD/MM"
+        const [ano, mes, dia] = dataInput.split("-");
+        const dataFormatada = `${dia}/${mes}`;
 
-      // Escuta os cortes em tempo real no Firestore
-      unsubscribe = db.collection("agendamentos")
-        .where("profissional", "==", barbeiro)
-        .where("data", "==", dataFormatada)
-        .onSnapshot((snapshot) => {
-          container.innerHTML = "";
+        container.innerHTML = "<p class='empty-msg'>Buscando agendamentos...</p>";
 
-          if (snapshot.empty) {
-            container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataFormatada}.</div>`;
-            return;
-          }
+        // Cancela o ouvinte anterior para economizar requisições no Firebase
+        if (unsubscribe) unsubscribe();
 
-          snapshot.forEach((doc) => {
-            const ag = doc.data();
-            const idDoc = doc.id;
-            const status = ag.status || "Pendente";
-            const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+        // Escuta os cortes em tempo real no Firestore
+        unsubscribe = db.collection("agendamentos")
+            .where("profissional", "==", barbeiro)
+            .where("data", "==", dataFormatada)
+            .onSnapshot((snapshot) => {
+                container.innerHTML = "";
 
-            // Tratamento do telefone e link direto para WhatsApp
-            const telOriginal = ag.telefone || "Não informado";
-            const telApenasNumeros = telOriginal.replace(/\D/g, "");
-            const linkWhatsapp = telApenasNumeros 
-              ? `https://wa.me/55${telApenasNumeros}?text=Olá!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
-              : "#";
+                if (snapshot.empty) {
+                    container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataFormatada}.</div>`;
+                    return;
+                }
 
-            let cardClass = "card";
-            if (status === "Concluído") cardClass += " concluido";
-            if (status === "Cancelado") cardClass += " cancelado";
+                snapshot.forEach((doc) => {
+                    const ag = doc.data();
+                    const idDoc = doc.id;
+                    const status = ag.status || "Pendente";
+                    const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
 
-            container.innerHTML += `
-              <div class="${cardClass}">
-                <div class="card-header">
-                  <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
-                  <span>R$ ${ag.total ? Number(ag.total).toFixed(2) : '0.00'}</span>
-                </div>
-                <div class="card-body">
-                  <p><strong>Cliente:</strong> ${ag.usuario}</p>
-                  <p><strong>Contato:</strong> ${telOriginal} ${telApenasNumeros ? `<a href="${linkWhatsapp}" target="_blank" style="color: #25D366; font-weight: bold; margin-left: 8px; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}</p>
-                  <p><strong>Serviços:</strong> ${servicos}</p>
-                  <p><strong>Status:</strong> ${status}</p>
-                </div>
-                <div class="actions">
-                  ${status !== "Concluído" ? `<button class="btn btn-success" onclick="alterarStatus('${idDoc}', 'Concluído')">Concluir</button>` : ''}
-                  ${status !== "Cancelado" ? `<button class="btn btn-danger" onclick="alterarStatus('${idDoc}', 'Cancelado')">Cancelar</button>` : ''}
-                </div>
-              </div>
-            `;
-          });
-        }, (error) => {
-          console.error("Erro ao buscar agendamentos: ", error);
-          container.innerHTML = "<p class='empty-msg' style='color:#ef4444;'>Erro ao carregar do Firebase.</p>";
-        });
+                    // Tratamento do telefone e link direto para WhatsApp
+                    const telOriginal = ag.telefone || "Não informado";
+                    const telApenasNumeros = telOriginal.replace(/\D/g, "");
+                    const linkWhatsapp = telApenasNumeros 
+                        ? `https://wa.me/55${telApenasNumeros}?text=Olá!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
+                        : "#";
+
+                    let cardClass = "card";
+                    if (status === "Concluído") cardClass += " concluido";
+                    if (status === "Cancelado") cardClass += " cancelado";
+
+                    const totalFormatado = ag.total ? Number(ag.total).toFixed(2).replace('.', ',') : '0,00';
+
+                    container.innerHTML += `
+                        <div class="${cardClass}">
+                            <div class="card-header">
+                                <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
+                                <span>R$ ${totalFormatado}</span>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Cliente:</strong> ${ag.usuario}</p>
+                                <p><strong>Contato:</strong> ${telOriginal} ${telApenasNumeros ? `<a href="${linkWhatsapp}" target="_blank" style="color: #25D366; font-weight: bold; margin-left: 8px; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}</p>
+                                <p><strong>Serviços:</strong> ${servicos}</p>
+                                <p><strong>Status:</strong> ${status}</p>
+                            </div>
+                            <div class="actions">
+                                ${status !== "Concluído" ? `<button class="btn btn-success" onclick="alterarStatus('${idDoc}', 'Concluído')">Concluir</button>` : ''}
+                                ${status !== "Cancelado" ? `<button class="btn btn-danger" onclick="alterarStatus('${idDoc}', 'Cancelado')">Cancelar</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }, (error) => {
+                console.error("Erro ao buscar agendamentos: ", error);
+                container.innerHTML = "<p class='empty-msg' style='color:#ef4444;'>Erro ao carregar do Firebase.</p>";
+            });
     }
 
     function alterarStatus(idDoc, novoStatus) {
-      db.collection("agendamentos").doc(idDoc).update({
-        status: novoStatus
-      }).catch(err => alert("Erro ao atualizar status: " + err.message));
+        db.collection("agendamentos").doc(idDoc).update({
+            status: novoStatus
+        }).catch(err => alert("Erro ao atualizar status: " + err.message));
     }
 
     // Carrega a lista automaticamente ao abrir a página
     carregarAgendamentos();
-  </script>
+</script>
 </body>
 </html>
