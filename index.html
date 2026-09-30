@@ -900,6 +900,28 @@
         dayIndex: null,
         horario: null
     };
+    // =========================================================================
+// MODAL DE MEUS AGENDAMENTOS
+// =========================================================================
+function openMyAppointmentsModal() {
+    const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
+    if (modal) {
+        modal.classList.add("open");
+    } else {
+        // Caso não exista um elemento modal separado, rola até a lista de agendamentos
+        const container = document.getElementById("appointments-list");
+        if (container) {
+            container.scrollIntoView({ behavior: "smooth" });
+        }
+    }
+}
+
+function closeMyAppointmentsModal() {
+    const modal = document.getElementById("appointments-modal") || document.getElementById("my-appointments-modal");
+    if (modal) {
+        modal.classList.remove("open");
+    }
+}
 
     // =========================================================================
     // INICIALIZAÇÃO DA PÁGINA E AUTENTICAÇÃO GOOGLE
@@ -909,7 +931,8 @@
             google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 callback: handleCredentialResponse,
-                auto_select: false
+                auto_select: false,
+                use_fedcm_for_prompt: false
             });
 
             const btnWrapper = document.getElementById("googleBtnWrapper");
