@@ -1230,28 +1230,30 @@ function carregarAgendamentos() {
 }
     // Função para selecionar/deselecionar o serviço ao clicar
     function alternarServico(id) {
-        const servico = barberData.servicos.find(s => s.id === id);
-        if (!servico) return;
+    // Usamos '==' para funcionar mesmo se um for número e o outro texto
+    const servico = barberData.servicos.find(s => s.id == id);
+    if (!servico) return;
 
-        const idx = servicosSelecionados.findIndex(s => s.id === id);
-        if (idx > -1) {
-            servicosSelecionados.splice(idx, 1);
+    const idx = servicosSelecionados.findIndex(s => s.id == id);
+    if (idx > -1) {
+        servicosSelecionados.splice(idx, 1);
+    } else {
+        servicosSelecionados.push(servico);
+    }
+
+    // Redesenha os cartões com o ícone de selecionado na hora
+    renderizarAbaServicos();
+
+    // Atualiza o texto no modal principal do agendamento
+    const label = document.getElementById("selected-services-label");
+    if (label) {
+        if (servicosSelecionados.length === 0) {
+            label.innerText = "Selecione os serviços";
         } else {
-            servicosSelecionados.push(servico);
-        }
-
-        renderizarAbaServicos();
-
-        // Atualiza o texto no modal principal do agendamento
-        const label = document.getElementById("selected-services-label");
-        if (label) {
-            if (servicosSelecionados.length === 0) {
-                label.innerText = "Selecione os serviços";
-            } else {
-                label.innerText = servicosSelecionados.map(s => s.nome).join(", ");
-            }
+            label.innerText = servicosSelecionados.map(s => s.nome).join(", ");
         }
     }
+}
 
     let usuarioLogado = localStorage.getItem("usuario_logado") || null;
     let nomeUsuario = localStorage.getItem("nome_usuario") || null;
