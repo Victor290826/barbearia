@@ -840,7 +840,7 @@
     // Escala de Barbeiros (0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado)
     const escalaBarbeiros = {
         0: [], // Domingo: Fechado
-        1: [], // Segunda: Apenas Gabriel
+        1: ["Luan Cezar"], // Segunda: Apenas Luan Cezar
         2: ["Lerinho Costa", "Luan Cezar"],
         3: ["Lerinho Costa", "Luan Cezar"],
         4: ["Lerinho Costa", "Luan Cezar"],
@@ -1332,8 +1332,8 @@
     // Horários base padrão (Terça a Quinta)
     let horarios = ["08:00", "9:30", "11:00", "14:00", "15:30", "17:00"];
 
-        if (dayIndex === 2) { 
-            // Terça-feira (dayIndex 2): inclui 17:30
+        if (dayIndex === 1) { 
+            // Segunda-feira (dayIndex 1): inclui 17:00
             horarios.push("17:00");
         } else if (dayIndex === 5 || dayIndex === 6) { 
             // Sexta (5) e Sábado (6): inclui 17:30 e 18:30
