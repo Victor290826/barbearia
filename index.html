@@ -1162,61 +1162,112 @@ function closeMyAppointmentsModal() {
     // =========================================================================
     function carregarAgendamentosReais() {
     // Procura o container da página inicial e o container do modal
-    const containers = [
-        document.getElementById("appointments-list"),
-        document.getElementById("full-appointments-list")
-    ].filter(Boolean); // Filtra e mantém apenas os elementos existentes no DOM
+    const containerHome = document.getElementById("appointments-list");
+    const containerModal = document.getElementById("full-appointments-list");
 
-    if (!containers.length) return;
+    if (!containerHome && !containerModal) return;
 
     if (!usuarioLogado) {
-        containers.forEach(container => {
-            container.innerHTML = `
-                <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                    Faça login para ver os seus agendamentos.
-                </div>`;
-        });
+        const mensagemLogin = `
+            <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                Faça login para ver os seus agendamentos.
+            </div>`;
+        if (containerHome) containerHome.innerHTML = mensagemLogin;
+        if (containerModal) containerModal.innerHTML = mensagemLogin;
         return;
     }
 
     db.collection("agendamentos")
         .where("usuario", "==", usuarioLogado)
         .onSnapshot((snapshot) => {
-            containers.forEach(container => {
-                container.innerHTML = "";
+            if (containerHome) containerHome.innerHTML = "";
+            if (containerModal) containerModal.innerHTML = "";
 
-                if (snapshot.empty) {
-                    container.innerHTML = `
-                        <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
-                            Ainda não possui agendamentos.
-                        </div>`;
-                    return;
+            if (snapshot.empty) {
+                const mensagemVazio = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+                if (containerHome) containerHome.innerHTML = mensagemVazio;
+                if (containerModal) containerModal.innerHTML = mensagemVazio;
+                return;
+            }
+
+            let temProximosHome = false;
+            let temHistoricoModal = false;
+
+            snapshot.forEach((doc) => {
+                const ag = doc.data();
+                const idDoc = doc.id;
+                const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                let status = ag.status || "Pendente";
+
+                // Valida se a data e o horário já passaram em relação ao momento atual
+                let jaPassou = false;
+                if (ag.data && ag.horario) {
+                    const agora = new Date();
+                    const partesData = ag.data.split('/');
+                    const dia = parseInt(partesData[0], 10);
+                    const mes = parseInt(partesData[1], 10) - 1;
+                    const ano = partesData[2] ? parseInt(partesData[2], 10) : agora.getFullYear();
+
+                    const partesHora = ag.horario.split(':');
+                    const hora = parseInt(partesHora[0], 10);
+                    const min = parseInt(partesHora[1], 10);
+
+                    const dataAgendamento = new Date(ano, mes, dia, hora, min);
+                    jaPassou = dataAgendamento < agora;
                 }
 
-                snapshot.forEach((doc) => {
-                    const ag = doc.data();
-                    const idDoc = doc.id;
-                    const listaServicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
-                    let status = ag.status || "Pendente";
+                // Verifica se o status está marcado como concluído ou cancelado
+                const statusFinalizado = status.toLowerCase().includes("conclu") || status.toLowerCase().includes("cancel");
 
-                    container.innerHTML += `
-                        <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
-                            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-                                📅 ${ag.data} - ${ag.horario}
-                            </div>
-                            <div style="font-size: 13px; color: #4b5563;">
-                                ✂️️ ${listaServicos}
-                            </div>
-                            <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
-                                👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
-                            </div>
-                            ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
+                const cardHTML = `
+                    <div class="appointment-card" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; text-align: left; color: #111827;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+                            📅 ${ag.data} - ${ag.horario}
                         </div>
-                    `;
-                });
+                        <div style="font-size: 13px; color: #4b5563;">
+                            ✂ ${listaServicos}
+                        </div>
+                        <div style="font-size: 13px; color: #4b5563; margin-top: 4px;">
+                            👤 ${ag.profissional || 'Profissional'} (<strong style="color:#d2b378;">${status}</strong>)
+                        </div>
+                        ${ag.total ? `<div style="font-size: 13px; font-weight: bold; margin-top: 6px;">Total: R$ ${ag.total.toFixed(2)}</div>` : ''}
+                    </div>
+                `;
+
+                // 1. TELA INICIAL (appointments-list): Só exibe se ainda NÃO passou e NÃO foi concluído
+                if (containerHome && !jaPassou && !statusFinalizado) {
+                    containerHome.innerHTML += cardHTML;
+                    temProximosHome = true;
+                }
+
+                // 2. MODAL (full-appointments-list): Exibe o histórico completo
+                if (containerModal) {
+                    containerModal.innerHTML += cardHTML;
+                    temHistoricoModal = true;
+                }
             });
+
+            // Caso não existam agendamentos futuros para mostrar na Home
+            if (containerHome && !temProximosHome) {
+                containerHome.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Você não possui próximos agendamentos.
+                    </div>`;
+            }
+
+            // Caso não exista nenhum histórico no modal
+            if (containerModal && !temHistoricoModal) {
+                containerModal.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; font-size: 13px; padding: 20px;">
+                        Ainda não possui agendamentos.
+                    </div>`;
+            }
         });
 }
+    
     function cancelarAgendamento(idDoc) {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
             db.collection("agendamentos").doc(idDoc).update({
