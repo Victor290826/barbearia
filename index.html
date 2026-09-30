@@ -1336,6 +1336,9 @@
     // =========================================================================
 // ETAPAS DE AGENDAMENTO (CORRIGIDO PARA FIREBASE)
 // =========================================================================
+// =========================================================================
+// ETAPAS DE AGENDAMENTO (COM OCULTAÇÃO DE HORÁRIOS PASSADOS)
+// =========================================================================
 async function openStep(stepName) {
     const sheet = document.getElementById("bottom-sheet");
     const overlay = document.getElementById("sheet-overlay");
@@ -1414,6 +1417,11 @@ async function openStep(stepName) {
         contentHTML += `</div><div class="time-grid">`;
 
         if (bookingState.data) {
+            // VERIFICA SE A DATA SELECIONADA É O DIA DE HOJE
+            const agora = new Date();
+            const eHoje = bookingState.data === availableDays[0]?.formatted;
+            const minutosAtuais = agora.getHours() * 60 + agora.getMinutes();
+
             // BUSCA AGENDAMENTOS REAIS NO FIRESTORE PARA O DIA SELECIONADO
             let horaiosOcupadosBarbeiro = [];
             let meusHorariosNoDia = [];
@@ -1426,11 +1434,9 @@ async function openStep(stepName) {
                 snap.forEach(doc => {
                     const ag = doc.data();
                     if (ag.status !== "Cancelado") {
-                        // Ocupados pelo barbeiro selecionado
                         if (bookingState.profissional && ag.profissional === bookingState.profissional) {
                             horaiosOcupadosBarbeiro.push(ag.horario);
                         }
-                        // Agendamentos do próprio usuário no mesmo dia
                         if (ag.usuario === usuarioLogado) {
                             meusHorariosNoDia.push(ag.horario);
                         }
@@ -1443,13 +1449,18 @@ async function openStep(stepName) {
             barberData.horarios.forEach(h => {
                 const hMinutos = converterHorarioParaMinutos(h);
 
+                // REGRA NOVA: Se for hoje e o horário já passou, ignora e faz desaparecer
+                if (eHoje && hMinutos <= minutosAtuais) {
+                    return;
+                }
+
                 // Regra 1: Horário já reservado para este barbeiro por qualquer cliente
                 const jaOcupado = horaiosOcupadosBarbeiro.includes(h);
 
                 // Regra 2: Intervalo mínimo de 60 minutos entre agendamentos do MESMO cliente
                 const conflitoIntervaloCliente = meusHorariosNoDia.some(horarioAgendado => {
                     const agMinutos = converterHorarioParaMinutos(horarioAgendado);
-                    return Math.abs(hMinutos - agMinutos) < 60; // Padronizado para 60min (1h)
+                    return Math.abs(hMinutos - agMinutos) < 60;
                 });
 
                 const selected = bookingState.horario === h;
@@ -1471,7 +1482,7 @@ async function openStep(stepName) {
     body.innerHTML = contentHTML + `<button class="btn-primary" style="margin-top: 15px;" onclick="closeSheet()">Confirmar</button>`;
     sheet.classList.add("open");
     overlay.style.display = "block";
-}
+}rrrrrr
     function closeSheet() {
         document.getElementById("bottom-sheet").classList.remove("open");
         document.getElementById("sheet-overlay").style.display = "none";
