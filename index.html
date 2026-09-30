@@ -852,7 +852,6 @@
         profissionais: [
             { id: 1, nome: "Lerinho Costa", img: "https://via.placeholder.com/50" },
             { id: 2, nome: "Luan Cezar", img: "https://via.placeholder.com/50" },
-            { id: 3, nome: "Gabriel", img: "https://via.placeholder.com/50" }
         ],
         servicos: [
             { id: 1, nome: "Cabelo", preco: 30.00 },
@@ -1333,12 +1332,12 @@
     // Horários base padrão (Terça a Quinta)
     let horarios = ["08:00", "9:30", "11:00", "14:00", "15:30", "17:00"];
 
-        if (dayIndex === 1) { 
-            // Segunda-feira (dayIndex 1): inclui 17:30
-            horarios.push("17:30");
+        if (dayIndex === 2) { 
+            // Terça-feira (dayIndex 2): inclui 17:30
+            horarios.push("17:00");
         } else if (dayIndex === 5 || dayIndex === 6) { 
             // Sexta (5) e Sábado (6): inclui 17:30 e 18:30
-            horarios.push("17:30", "18:30");
+            horarios.push("18:30");
         }
 
     return horarios;
