@@ -620,6 +620,102 @@
     color: #111827;
     text-align: left;
 }
+/* Container da lista de serviços */
+.services-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+/* Cartão do Serviço */
+.service-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Cartão quando selecionado (borda dourada) */
+.service-card.selected {
+    border: 1.5px solid #d2b378;
+    background-color: #faf8f5;
+}
+
+/* Badge "Em alta" no canto superior esquerdo */
+.service-badge {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #1d4ed8;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-top-left-radius: 11px;
+    border-bottom-right-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Informações do serviço */
+.service-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.service-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Preços (Atual e Antigo riscado) */
+.service-prices {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.price-current {
+    font-weight: 700;
+    font-size: 14px;
+    color: #111827;
+}
+
+.price-old {
+    color: #9ca3af;
+    text-decoration: line-through;
+    font-size: 12px;
+}
+
+/* Ícone/Círculo de Seleção à direita */
+.service-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #ffffff;
+    font-size: 11px;
+}
+
+.service-card.selected .service-check {
+    background-color: #d2b378;
+    border-color: #d2b378;
+}
     </style>
 </head>
     <body>
