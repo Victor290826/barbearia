@@ -2138,16 +2138,27 @@ function renderizarFidelidade(cortes, temPremio) {
     }
 }
 
-// 2. Busca e escuta os dados do Firebase em tempo real
 document.addEventListener("DOMContentLoaded", function() {
-    const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
+    // Pega o identificador do cliente logado (e-mail ou nome)
+    const clienteLogado = localStorage.getItem("usuarioLogado") || 
+                          localStorage.getItem("emailUsuario") || 
+                          localStorage.getItem("nomeUsuario") ||
+                          "vmccsilva.01@gmail.com"; // Teste local
 
-    if (nomeClienteLogado && window.db) {
+    if (clienteLogado && window.db) {
+        // Escuta os agendamentos concluídos
         db.collection("agendamentos")
-            .where("usuario", "==", nomeClienteLogado)
             .where("status", "==", "Concluído")
             .onSnapshot((snapshot) => {
-                const totalConcluidos = snapshot.size;
+                // Filtra apenas os agendamentos pertencentes a este cliente
+                const agendamentosDoCliente = snapshot.docs.filter(doc => {
+                    const dados = doc.data();
+                    return dados.cliente === clienteLogado || 
+                           dados.usuario === clienteLogado || 
+                           dados.email === clienteLogado;
+                });
+
+                const totalConcluidos = agendamentosDoCliente.length;
 
                 let cortesNoCartao = totalConcluidos % 10;
                 let temPremio = false;
