@@ -2093,62 +2093,36 @@ function toggleService(nome) {
         const dataAgendamento = new Date(ano, mes, dia, hora, min);
         return dataAgendamento < agora;
     }
-// Pega o nome do cliente logado na sessão atual
-const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
-
-if (nomeClienteLogado) {
-    // Escuta em tempo real os cortes CONCLUÍDOS deste cliente no Firebase
-    db.collection("agendamentos")
-        .where("usuario", "==", nomeClienteLogado)
-        .where("status", "==", "Concluído")
-        .onSnapshot((snapshot) => {
-            const totalConcluidos = snapshot.size;
-
-            // Calcula a posição no cartão atual (0 a 10)
-            let cortesNoCartao = totalConcluidos % 10;
-            let temPremio = false;
-
-            if (totalConcluidos > 0 && cortesNoCartao === 0) {
-                cortesNoCartao = 10;
-                temPremio = true;
-            }
-
-            renderizarFidelidade(cortesNoCartao, temPremio);
-        }, (error) => {
-            console.error("Erro ao carregar fidelidade:", error);
-        });
-}
-
-// Ativa a busca em tempo real no Firebase assim que a página carrega
 document.addEventListener("DOMContentLoaded", function() {
-  // Procura o nome do cliente logado
-  const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
+    // Pega o nome do cliente logado na sessão atual
+    const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
 
-  if (nomeClienteLogado && window.db) {
-    db.collection("agendamentos")
-      .where("usuario", "==", nomeClienteLogado)
-      .where("status", "==", "Concluído")
-      .onSnapshot((snapshot) => {
-        const totalConcluidos = snapshot.size;
+    if (nomeClienteLogado && window.db) {
+        // Escuta em tempo real os cortes CONCLUÍDOS deste cliente no Firebase
+        db.collection("agendamentos")
+            .where("usuario", "==", nomeClienteLogado)
+            .where("status", "==", "Concluído")
+            .onSnapshot((snapshot) => {
+                const totalConcluidos = snapshot.size;
 
-        let cortesNoCartao = totalConcluidos % 10;
-        let temPremio = false;
+                // Calcula a posição no cartão atual (0 a 10)
+                let cortesNoCartao = totalConcluidos % 10;
+                let temPremio = false;
 
-        if (totalConcluidos > 0 && cortesNoCartao === 0) {
-          cortesNoCartao = 10;
-          temPremio = true;
-        }
+                if (totalConcluidos > 0 && cortesNoCartao === 0) {
+                    cortesNoCartao = 10;
+                    temPremio = true;
+                }
 
-        // Chama a tua função para desenhar na tela
-        renderizarFidelidade(cortesNoCartao, temPremio);
-      }, (error) => {
-        console.error("Erro ao carregar fidelidade:", error);
+                renderizarFidelidade(cortesNoCartao, temPremio);
+            }, (error) => {
+                console.error("Erro ao carregar fidelidade:", error);
+                renderizarFidelidade(0, false);
+            });
+    } else {
+        // Caso não haja cliente logado ou o DB não esteja pronto, exibe 0 por padrão
         renderizarFidelidade(0, false);
-      });
-  } else {
-    // Caso não haja cliente logado, exibe 0 cortes por padrão
-    renderizarFidelidade(0, false);
-  }
+    }
 });
 </script>
 </body>
