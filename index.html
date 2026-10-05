@@ -718,6 +718,67 @@
         background-color: #d2b378;
         border-color: #d2b378;
     }
+.fidelidade-container {
+  background-color: #ffffff; 
+  border-radius: 16px;       
+  padding: 20px;              
+  margin-bottom: 16px;       
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+}
+
+.fidelidade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.fidelidade-contador {
+  color: #d2b378;
+  font-size: 16px;
+}
+
+.fidelidade-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.selo {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.selo.concluido {
+  background-color: #f3ebda;
+  border: 2px solid #d2b378;
+}
+
+.selo.pendente {
+  background-color: #f8f9fa;
+  border: 2px dashed #ccc;
+}
+
+.selo.premio {
+  background-color: #22c55e;
+  color: #fff;
+  border: 2px solid #16a34a;
+}
+
+.fidelidade-status {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
 </style>
 </head>
     <body>
@@ -766,12 +827,17 @@
     <!-- Conteúdo Principal -->
     <main class="container">
 
-        <!-- Card: Seu Plano -->
-        <section class="card">
-            <h3 class="card-title">O seu plano</h3>
-            <p class="card-subtitle">Você está aproveitando as vantagens do <strong>Clube Lerinho - Cabelo & Barba</strong></p>
-            <a href="#" class="card-link">Detalhes sobre o plano <i class="fa-solid fa-arrow-right"></i></a>
-        </section>
+        <!-- CARTÃO DE FIDELIDADE -->
+        <div class="fidelidade-container">
+            <div class="fidelidade-header">
+            <span>Cartão Fidelidade</span>
+            <span id="fidelidade-contador" class="fidelidade-contador">0 / 10</span>
+            </div>
+
+            <div id="fidelidade-grid" class="fidelidade-grid"></div>
+
+            <p id="fidelidade-status" class="fidelidade-status">Carregando cortes...</p>
+        </div>
 
         <!-- Banner de Suporte / WhatsApp -->
         <a href="https://wa.me/5581997800371" target="_blank" style="text-decoration: none; display: block; margin: 16px 0;">
@@ -2027,6 +2093,63 @@ function toggleService(nome) {
         const dataAgendamento = new Date(ano, mes, dia, hora, min);
         return dataAgendamento < agora;
     }
+// Pega o nome do cliente logado na sessão atual
+const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
+
+if (nomeClienteLogado) {
+    // Escuta em tempo real os cortes CONCLUÍDOS deste cliente no Firebase
+    db.collection("agendamentos")
+        .where("usuario", "==", nomeClienteLogado)
+        .where("status", "==", "Concluído")
+        .onSnapshot((snapshot) => {
+            const totalConcluidos = snapshot.size;
+
+            // Calcula a posição no cartão atual (0 a 10)
+            let cortesNoCartao = totalConcluidos % 10;
+            let temPremio = false;
+
+            if (totalConcluidos > 0 && cortesNoCartao === 0) {
+                cortesNoCartao = 10;
+                temPremio = true;
+            }
+
+            renderizarFidelidade(cortesNoCartao, temPremio);
+        }, (error) => {
+            console.error("Erro ao carregar fidelidade:", error);
+        });
+}
+
+// Ativa a busca em tempo real no Firebase assim que a página carrega
+document.addEventListener("DOMContentLoaded", function() {
+  // Procura o nome do cliente logado
+  const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
+
+  if (nomeClienteLogado && window.db) {
+    db.collection("agendamentos")
+      .where("usuario", "==", nomeClienteLogado)
+      .where("status", "==", "Concluído")
+      .onSnapshot((snapshot) => {
+        const totalConcluidos = snapshot.size;
+
+        let cortesNoCartao = totalConcluidos % 10;
+        let temPremio = false;
+
+        if (totalConcluidos > 0 && cortesNoCartao === 0) {
+          cortesNoCartao = 10;
+          temPremio = true;
+        }
+
+        // Chama a tua função para desenhar na tela
+        renderizarFidelidade(cortesNoCartao, temPremio);
+      }, (error) => {
+        console.error("Erro ao carregar fidelidade:", error);
+        renderizarFidelidade(0, false);
+      });
+  } else {
+    // Caso não haja cliente logado, exibe 0 cortes por padrão
+    renderizarFidelidade(0, false);
+  }
+});
 </script>
 </body>
 </html>
