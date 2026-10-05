@@ -2093,19 +2093,62 @@ function toggleService(nome) {
         const dataAgendamento = new Date(ano, mes, dia, hora, min);
         return dataAgendamento < agora;
     }
+// 1. Função responsável por desenhar os selos na tela
+function renderizarFidelidade(cortes, temPremio) {
+    const grid = document.getElementById("fidelidade-grid");
+    const contador = document.getElementById("fidelidade-contador");
+    const status = document.getElementById("fidelidade-status");
+
+    if (!grid || !contador || !status) return;
+
+    contador.innerText = `${cortes} / 10`;
+    grid.innerHTML = "";
+
+    // Desenha os 10 selos
+    for (let i = 1; i <= 10; i++) {
+        const selo = document.createElement("div");
+
+        if (i < 10) {
+            if (i <= cortes) {
+                selo.className = "selo concluido";
+                selo.innerText = "✂️";
+            } else {
+                selo.className = "selo pendente";
+            }
+        } else {
+            // 10º selo (Prêmio)
+            if (temPremio || cortes === 10) {
+                selo.className = "selo premio";
+                selo.innerText = "🎁";
+            } else {
+                selo.className = "selo pendente";
+                selo.innerText = "🎁";
+            }
+        }
+
+        grid.appendChild(selo);
+    }
+
+    // Mensagem dinâmica
+    if (temPremio || cortes === 10) {
+        status.innerHTML = "🎉 <strong>Parabéns! Você ganhou 1 corte grátis!</strong>";
+    } else {
+        const faltam = 10 - cortes;
+        status.innerHTML = `Falta${faltam > 1 ? 'm' : ''} <strong>${faltam} corte${faltam > 1 ? 's' : ''}</strong> para você ganhar 1 grátis!`;
+    }
+}
+
+// 2. Busca e escuta os dados do Firebase em tempo real
 document.addEventListener("DOMContentLoaded", function() {
-    // Pega o nome do cliente logado na sessão atual
     const nomeClienteLogado = localStorage.getItem("usuarioLogado") || localStorage.getItem("nomeUsuario");
 
     if (nomeClienteLogado && window.db) {
-        // Escuta em tempo real os cortes CONCLUÍDOS deste cliente no Firebase
         db.collection("agendamentos")
             .where("usuario", "==", nomeClienteLogado)
             .where("status", "==", "Concluído")
             .onSnapshot((snapshot) => {
                 const totalConcluidos = snapshot.size;
 
-                // Calcula a posição no cartão atual (0 a 10)
                 let cortesNoCartao = totalConcluidos % 10;
                 let temPremio = false;
 
@@ -2120,7 +2163,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 renderizarFidelidade(0, false);
             });
     } else {
-        // Caso não haja cliente logado ou o DB não esteja pronto, exibe 0 por padrão
         renderizarFidelidade(0, false);
     }
 });
