@@ -18,16 +18,18 @@
     select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 15px; }
     
     .card { background: #1e1e1e; border-left: 5px solid #d2b378; border-radius: 6px; padding: 15px; margin-bottom: 12px; }
-    .card.concluido { border-left-color: #22c55e; opacity: 0.6; }
+    .card.concluido { border-left-color: #22c55e; opacity: 0.7; }
     .card.cancelado { border-left-color: #ef4444; opacity: 0.4; }
     
     .card-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #d2b378; }
     .card-body p { margin: 4px 0; font-size: 13px; color: #ccc; }
     
     .actions { margin-top: 12px; display: flex; gap: 8px; }
-    .btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+    .btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.2s; }
     .btn-success { background: #22c55e; color: #fff; }
+    .btn-success:hover { background: #16a34a; }
     .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
     .empty-msg { text-align: center; color: #777; margin-top: 30px; font-size: 14px; }
   </style>
 </head>
@@ -55,12 +57,11 @@
     <div id="lista-agendamentos"></div>
   </div>
 
-   <!-- Firebase SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // ⚠️ COLOQUE SUAS CHAVES DO FIREBASE AQUI
     const firebaseConfig = {
         apiKey: "AIzaSyBLgnDDImGXkKjTd7Z5FWm2yIkDTF5hJWU",
         authDomain: "barbearia-lerinho-costa-5e12f.firebaseapp.com",
@@ -79,10 +80,14 @@
 
     let unsubscribe = null;
 
-    // Define a data atual por padrão no campo de busca
+    // Define a data local atual sem bug de fuso horário
     const inputData = document.getElementById("selectData");
     if (inputData) {
-        inputData.valueAsDate = new Date();
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        inputData.value = `${ano}-${mes}-${dia}`;
     }
 
     function carregarAgendamentos() {
@@ -90,46 +95,52 @@
         const dataInputEl = document.getElementById("selectData");
         const container = document.getElementById("lista-agendamentos");
 
-        // Verifica se os elementos existem na tela antes de ler os valores
         if (!barbeiroEl || !dataInputEl || !container) return;
 
         const barbeiro = barbeiroEl.value;
-        const dataInput = dataInputEl.value; // Ex: "2026-09-30"
+        const dataInput = dataInputEl.value; // Ex: "2026-10-05"
 
         if (!dataInput) return;
 
-        // Converte data "YYYY-MM-DD" para "DD/MM"
         const [ano, mes, dia] = dataInput.split("-");
-        const dataFormatada = `${dia}/${mes}`;
+        const dataDDMM = `${dia}/${mes}`;
+        const dataDDMMYYYY = `${dia}/${mes}/${ano}`;
 
         container.innerHTML = "<p class='empty-msg'>Buscando agendamentos...</p>";
 
-        // Cancela o ouvinte anterior para economizar requisições no Firebase
+        // Cancela ouvinte anterior para evitar requisições acumuladas
         if (unsubscribe) unsubscribe();
 
-        // Escuta os cortes em tempo real no Firestore
+        // Busca aceitando formatos variados de data (DD/MM, DD/MM/YYYY ou YYYY-MM-DD)
         unsubscribe = db.collection("agendamentos")
             .where("profissional", "==", barbeiro)
-            .where("data", "==", dataFormatada)
+            .where("data", "in", [dataDDMM, dataDDMMYYYY, dataInput])
             .onSnapshot((snapshot) => {
                 container.innerHTML = "";
 
                 if (snapshot.empty) {
-                    container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataFormatada}.</div>`;
+                    container.innerHTML = `<div class="empty-msg">Nenhum agendamento para ${barbeiro} em ${dataDDMM}.</div>`;
                     return;
                 }
 
+                const idsProcessados = new Set();
+
                 snapshot.forEach((doc) => {
+                    // Impede duplicados no render
+                    if (idsProcessados.has(doc.id)) return;
+                    idsProcessados.add(doc.id);
+
                     const ag = doc.data();
                     const idDoc = doc.id;
                     const status = ag.status || "Pendente";
-                    const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : ag.servicos;
+                    const servicos = Array.isArray(ag.servicos) ? ag.servicos.join(", ") : (ag.servicos || "Não informado");
+                    const clienteNome = ag.usuario || ag.cliente || ag.nome || ag.email || "Cliente";
 
-                    // Tratamento do telefone e link direto para WhatsApp
-                    const telOriginal = ag.telefone || "Não informado";
+                    // Tratamento de telefone e WhatsApp
+                    const telOriginal = ag.telefone || ag.contato || "Não informado";
                     const telApenasNumeros = telOriginal.replace(/\D/g, "");
                     const linkWhatsapp = telApenasNumeros 
-                        ? `https://wa.me/55${telApenasNumeros}?text=Olá!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
+                        ? `https://wa.me/55${telApenasNumeros}?text=Olá,%20${encodeURIComponent(clienteNome)}!%20Falo%20da%20Barbearia%20Lerinho%20Costa%20sobre%20o%20seu%20agendamento.` 
                         : "#";
 
                     let cardClass = "card";
@@ -141,14 +152,14 @@
                     container.innerHTML += `
                         <div class="${cardClass}">
                             <div class="card-header">
-                                <span><i class="fa-regular fa-clock"></i> ${ag.horario}</span>
+                                <span><i class="fa-regular fa-clock"></i> ${ag.horario || 'Horário N/A'}</span>
                                 <span>R$ ${totalFormatado}</span>
                             </div>
                             <div class="card-body">
-                                <p><strong>Cliente:</strong> ${ag.usuario}</p>
+                                <p><strong>Cliente:</strong> ${clienteNome}</p>
                                 <p><strong>Contato:</strong> ${telOriginal} ${telApenasNumeros ? `<a href="${linkWhatsapp}" target="_blank" style="color: #25D366; font-weight: bold; margin-left: 8px; text-decoration: none;"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}</p>
                                 <p><strong>Serviços:</strong> ${servicos}</p>
-                                <p><strong>Status:</strong> ${status}</p>
+                                <p><strong>Status:</strong> <strong>${status}</strong></p>
                             </div>
                             <div class="actions">
                                 ${status !== "Concluído" ? `<button class="btn btn-success" onclick="alterarStatus('${idDoc}', 'Concluído')">Concluir</button>` : ''}
@@ -166,11 +177,15 @@
     function alterarStatus(idDoc, novoStatus) {
         db.collection("agendamentos").doc(idDoc).update({
             status: novoStatus
+        }).then(() => {
+            console.log(`Status do agendamento ${idDoc} atualizado para: ${novoStatus}`);
         }).catch(err => alert("Erro ao atualizar status: " + err.message));
     }
 
-    // Carrega a lista automaticamente ao abrir a página
-    carregarAgendamentos();
-</script>
+    // Inicializa assim que a página carrega
+    document.addEventListener("DOMContentLoaded", function() {
+        carregarAgendamentos();
+    });
+  </script>
 </body>
 </html>
